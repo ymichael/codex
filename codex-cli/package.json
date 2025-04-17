@@ -1,5 +1,5 @@
 {
-  "name": "@openai/codex",
+  "name": "@ymichael/codex",
   "version": "0.1.2504161510",
   "license": "Apache-2.0",
   "bin": {
@@ -78,6 +78,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/openai/codex"
+    "url": "https://github.com/ymichael/codex"
   }
 }
