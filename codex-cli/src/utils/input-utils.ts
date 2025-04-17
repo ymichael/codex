@@ -1,4 +1,7 @@
-import type { ResponseInputItem } from "openai/resources/responses/responses";
+import type {
+  ChatCompletionContentPart,
+  ChatCompletionMessageParam,
+} from "openai/resources/chat/completions.mjs";
 
 import { fileTypeFromBuffer } from "file-type";
 import fs from "fs/promises";
@@ -6,12 +9,8 @@ import fs from "fs/promises";
 export async function createInputItem(
   text: string,
   images: Array<string>,
-): Promise<ResponseInputItem.Message> {
-  const inputItem: ResponseInputItem.Message = {
-    role: "user",
-    content: [{ type: "input_text", text }],
-    type: "message",
-  };
+): Promise<ChatCompletionMessageParam> {
+  const content: Array<ChatCompletionContentPart> = [{ type: "text", text }];
 
   for (const filePath of images) {
     /* eslint-disable no-await-in-loop */
@@ -20,12 +19,16 @@ export async function createInputItem(
     /* eslint-enable no-await-in-loop */
     const encoded = binary.toString("base64");
     const mime = kind?.mime ?? "application/octet-stream";
-    inputItem.content.push({
-      type: "input_image",
-      detail: "auto",
-      image_url: `data:${mime};base64,${encoded}`,
+    content.push({
+      type: "image_url",
+      image_url: {
+        url: `data:${mime};base64,${encoded}`,
+      },
     });
   }
-
+  const inputItem: ChatCompletionMessageParam = {
+    role: "user",
+    content: [{ type: "text", text }],
+  };
   return inputItem;
 }

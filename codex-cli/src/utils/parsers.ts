@@ -5,7 +5,7 @@ import type {
 } from "./agent/sandbox/interface.js";
 import type { SafeCommandReason } from "@lib/approvals.js";
 import type { ResponseFunctionToolCall } from "openai/resources/responses/responses.mjs";
-
+import type { ChatCompletionMessageToolCall } from "openai/resources/chat/completions.mjs";
 import { log } from "node:console";
 import process from "process";
 
@@ -88,6 +88,26 @@ export function parseToolCallOutput(toolCallOutput: string): {
       },
     };
   }
+}
+
+export function parseToolCallChatCompletion(
+  toolCall: ChatCompletionMessageToolCall,
+): CommandReviewDetails | undefined {
+  if (toolCall.type !== "function") {
+    return undefined;
+  }
+  const toolCallArgs = parseToolCallArguments(toolCall.function.arguments);
+  if (toolCallArgs == null) {
+    return undefined;
+  }
+  const { cmd } = toolCallArgs;
+  const cmdReadableText = formatCommandForDisplay(cmd);
+  const autoApproval = computeAutoApproval(cmd);
+  return {
+    cmd,
+    cmdReadableText,
+    autoApproval,
+  };
 }
 
 export function parseToolCall(

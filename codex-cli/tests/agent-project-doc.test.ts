@@ -126,9 +126,8 @@ describe("AgentLoop", () => {
     // will resolve immediately.
     await agent.run([
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "ping" }],
+        content: [{ type: "text", text: "ping" }],
       },
     ]);
 

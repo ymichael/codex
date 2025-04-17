@@ -1,4 +1,5 @@
 import type { ResponseItem } from "openai/resources/responses/responses.mjs";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 
 import { approximateTokensUsed } from "../../utils/approximate-tokens-used.js";
 
@@ -44,7 +45,7 @@ export function maxTokensForModel(model: string): number {
  * Calculates the percentage of tokens remaining in context for a model.
  */
 export function calculateContextPercentRemaining(
-  items: Array<ResponseItem>,
+  items: Array<ChatCompletionMessageParam>,
   model: string,
 ): number {
   const used = approximateTokensUsed(items);

@@ -4,7 +4,7 @@ import type { AppRollout } from "./app";
 import type { CommandConfirmation } from "./utils/agent/agent-loop";
 import type { AppConfig } from "./utils/config";
 import type { ApprovalPolicy } from "@lib/approvals";
-import type { ResponseItem } from "openai/resources/responses/responses";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions/completions.mjs";
 
 import App from "./app";
 import { runSinglePass } from "./cli_singlepass";
@@ -12,13 +12,13 @@ import { AgentLoop } from "./utils/agent/agent-loop";
 import { initLogger } from "./utils/agent/log";
 import { ReviewDecision } from "./utils/agent/review";
 import { AutoApprovalMode } from "./utils/auto-approval-mode";
-import { loadConfig, PRETTY_PRINT } from "./utils/config";
+import { loadConfig, OPENAI_API_KEY, PRETTY_PRINT } from "./utils/config";
 import { createInputItem } from "./utils/input-utils";
+import { preloadModels } from "./utils/model-utils.js";
 import {
-  isModelSupportedForResponses,
-  preloadModels,
-} from "./utils/model-utils.js";
-import { parseToolCall } from "./utils/parsers";
+  parseToolCallOutput,
+  parseToolCallChatCompletion,
+} from "./utils/parsers";
 import { onExit, setInkRenderer } from "./utils/terminal";
 import chalk from "chalk";
 import fs from "fs";
@@ -139,9 +139,7 @@ if (cli.flags.help) {
 // API key handling
 // ---------------------------------------------------------------------------
 
-const apiKey = process.env["OPENAI_API_KEY"];
-
-if (!apiKey) {
+if (!OPENAI_API_KEY) {
   // eslint-disable-next-line no-console
   console.error(
     `\n${chalk.red("Missing OpenAI API key.")}\n\n` +
@@ -167,21 +165,10 @@ const model = cli.flags.model;
 const imagePaths = cli.flags.image as Array<string> | undefined;
 
 config = {
-  apiKey,
+  apiKey: OPENAI_API_KEY,
   ...config,
   model: model ?? config.model,
 };
-
-if (!(await isModelSupportedForResponses(config.model))) {
-  // eslint-disable-next-line no-console
-  console.error(
-    `The model "${config.model}" does not appear in the list of models ` +
-      `available to your account. Double‑check the spelling (use\n` +
-      `  openai models list\n` +
-      `to see the full list) or choose another model with the --model flag.`,
-  );
-  process.exit(1);
-}
 
 let rollout: AppRollout | undefined;
 
@@ -275,53 +262,69 @@ const instance = render(
 );
 setInkRenderer(instance);
 
-function formatResponseItemForQuietMode(item: ResponseItem): string {
+function formatChatCompletionMessageParamForQuietMode(
+  item: ChatCompletionMessageParam,
+): string {
   if (!PRETTY_PRINT) {
     return JSON.stringify(item);
   }
-  switch (item.type) {
-    case "message": {
-      const role = item.role === "assistant" ? "assistant" : item.role;
-      const txt = item.content
-        .map((c) => {
-          if (c.type === "output_text" || c.type === "input_text") {
-            return c.text;
-          }
-          if (c.type === "input_image") {
-            return "<Image>";
-          }
-          if (c.type === "input_file") {
-            return c.filename;
-          }
-          if (c.type === "refusal") {
-            return c.refusal;
-          }
-          return "?";
-        })
-        .join(" ");
-      return `${role}: ${txt}`;
-    }
-    case "function_call": {
-      const details = parseToolCall(item);
-      return `$ ${details?.cmdReadableText ?? item.name}`;
-    }
-    case "function_call_output": {
-      // @ts-expect-error metadata unknown on ResponseFunctionToolCallOutputItem
-      const meta = item.metadata as ExecOutputMetadata;
-      const parts: Array<string> = [];
-      if (typeof meta?.exit_code === "number") {
-        parts.push(`code: ${meta.exit_code}`);
+  const parts: Array<string> = [];
+  const content =
+    typeof item.content === "string"
+      ? item.content
+      : Array.isArray(item.content)
+      ? item.content
+          .map((c) => {
+            if (c.type === "text") {
+              return c.text;
+            }
+            if (c.type === "image_url") {
+              return "<Image>";
+            }
+            if (c.type === "file") {
+              return "File";
+            }
+            if (c.type === "refusal") {
+              return c.refusal;
+            }
+            return "?";
+          })
+          .join(" ")
+      : "";
+
+  if (content) {
+    if (item.role === "tool" && !("tool_calls" in item)) {
+      const prefix: Array<string> = [];
+      const { output, metadata } = parseToolCallOutput(content);
+      if (typeof metadata?.exit_code === "number") {
+        prefix.push(`code: ${metadata.exit_code}`);
       }
-      if (typeof meta?.duration_seconds === "number") {
-        parts.push(`duration: ${meta.duration_seconds}s`);
+      if (typeof metadata?.duration_seconds === "number") {
+        prefix.push(`duration: ${metadata.duration_seconds}s`);
       }
-      const header = parts.length > 0 ? ` (${parts.join(", ")})` : "";
-      return `command.stdout${header}\n${item.output}`;
-    }
-    default: {
-      return JSON.stringify(item);
+      parts.push(
+        `command.stdout${
+          prefix.length > 0 ? ` (${prefix.join(", ")})` : ""
+        }\n${output}`,
+      );
+    } else {
+      parts.push(`${item.role}: ${content}`);
     }
   }
+  if ("tool_calls" in item && item.tool_calls) {
+    for (const toolCall of item.tool_calls) {
+      const details = parseToolCallChatCompletion(toolCall);
+      if (details) {
+        parts.push(`$ ${details.cmdReadableText}`);
+      } else {
+        parts.push(`$ ${toolCall.function.name}`);
+      }
+    }
+  }
+  if (parts.length > 0) {
+    return parts.join("\n");
+  }
+  return JSON.stringify(item);
 }
 
 async function runQuietMode({
@@ -340,9 +343,9 @@ async function runQuietMode({
     config: config,
     instructions: config.instructions,
     approvalPolicy,
-    onItem: (item: ResponseItem) => {
+    onItem: (item: ChatCompletionMessageParam) => {
       // eslint-disable-next-line no-console
-      console.log(formatResponseItemForQuietMode(item));
+      console.log(formatChatCompletionMessageParamForQuietMode(item));
     },
     onLoading: () => {
       /* intentionally ignored in quiet mode */

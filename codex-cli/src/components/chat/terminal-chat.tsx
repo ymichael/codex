@@ -2,22 +2,17 @@ import type { CommandConfirmation } from "../../utils/agent/agent-loop.js";
 import type { AppConfig } from "../../utils/config.js";
 import type { ApplyPatchCommand, ApprovalPolicy } from "@lib/approvals.js";
 import type { ColorName } from "chalk";
-import type { ResponseItem } from "openai/resources/responses/responses.mjs";
 import type { ReviewDecision } from "src/utils/agent/review.ts";
-
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 import TerminalChatInput from "./terminal-chat-input.js";
 import { TerminalChatToolCallCommand } from "./terminal-chat-tool-call-item.js";
-import {
-  calculateContextPercentRemaining,
-  uniqueById,
-} from "./terminal-chat-utils.js";
+import { calculateContextPercentRemaining } from "./terminal-chat-utils.js";
 import TerminalMessageHistory from "./terminal-message-history.js";
 import { useConfirmation } from "../../hooks/use-confirmation.js";
 import { useTerminalSize } from "../../hooks/use-terminal-size.js";
 import { AgentLoop } from "../../utils/agent/agent-loop.js";
 import { log, isLoggingEnabled } from "../../utils/agent/log.js";
 import { createInputItem } from "../../utils/input-utils.js";
-import { getAvailableModels } from "../../utils/model-utils.js";
 import { CLI_VERSION } from "../../utils/session.js";
 import { shortCwd } from "../../utils/short-path.js";
 import { saveRollout } from "../../utils/storage/save-rollout.js";
@@ -53,7 +48,7 @@ export default function TerminalChat({
 }: Props): React.ReactElement {
   const [model, setModel] = useState<string>(config.model);
   const [lastResponseId, setLastResponseId] = useState<string | null>(null);
-  const [items, setItems] = useState<Array<ResponseItem>>([]);
+  const [items, setItems] = useState<Array<ChatCompletionMessageParam>>([]);
   const [loading, setLoading] = useState<boolean>(false);
   // Allow switching approval modes at runtime via an overlay.
   const [approvalPolicy, setApprovalPolicy] = useState<ApprovalPolicy>(
@@ -110,7 +105,7 @@ export default function TerminalChat({
       onItem: (item) => {
         log(`onItem: ${JSON.stringify(item)}`);
         setItems((prev) => {
-          const updated = uniqueById([...prev, item as ResponseItem]);
+          const updated = [...prev, item];
           saveRollout(updated);
           return updated;
         });
@@ -207,39 +202,10 @@ export default function TerminalChat({
     processInitialInputItems();
   }, [agent, initialPrompt, initialImagePaths]);
 
-  // ────────────────────────────────────────────────────────────────
-  // In-app warning if CLI --model isn't in fetched list
-  // ────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      const available = await getAvailableModels();
-      if (model && available.length > 0 && !available.includes(model)) {
-        setItems((prev) => [
-          ...prev,
-          {
-            id: `unknown-model-${Date.now()}`,
-            type: "message",
-            role: "system",
-            content: [
-              {
-                type: "input_text",
-                text: `Warning: model "${model}" is not in the list of available models returned by OpenAI.`,
-              },
-            ],
-          },
-        ]);
-      }
-    })();
-    // run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Just render every item in order, no grouping/collapse
   const lastMessageBatch = items.map((item) => ({ item }));
   const groupCounts: Record<string, number> = {};
-  const userMsgCount = items.filter(
-    (i) => i.type === "message" && i.role === "user",
-  ).length;
+  const userMsgCount = items.filter((i) => i.role === "user").length;
 
   const contextLeftPercent = useMemo(
     () => calculateContextPercentRemaining(items, model),
@@ -342,12 +308,10 @@ export default function TerminalChat({
               setItems((prev) => [
                 ...prev,
                 {
-                  id: `switch-model-${Date.now()}`,
-                  type: "message",
-                  role: "system",
+                  role: "assistant",
                   content: [
                     {
-                      type: "input_text",
+                      type: "text",
                       text: `Switched model to ${newModel}`,
                     },
                   ],
@@ -373,12 +337,10 @@ export default function TerminalChat({
               setItems((prev) => [
                 ...prev,
                 {
-                  id: `switch-approval-${Date.now()}`,
-                  type: "message",
-                  role: "system",
+                  role: "assistant",
                   content: [
                     {
-                      type: "input_text",
+                      type: "text",
                       text: `Switched approval mode to ${newMode}`,
                     },
                   ],

@@ -1,5 +1,5 @@
 import type { TerminalChatSession } from "../../utils/session.js";
-import type { ResponseItem } from "openai/resources/responses/responses";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 
 import TerminalChatResponseItem from "./terminal-chat-response-item";
 import { Box, Text } from "ink";
@@ -10,7 +10,7 @@ export default function TerminalChatPastRollout({
   items,
 }: {
   session: TerminalChatSession;
-  items: Array<ResponseItem>;
+  items: Array<ChatCompletionMessageParam>;
 }): React.ReactElement {
   const { version, id: sessionId, model } = session;
   return (

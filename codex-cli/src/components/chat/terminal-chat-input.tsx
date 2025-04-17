@@ -1,8 +1,5 @@
 import type { ReviewDecision } from "../../utils/agent/review.js";
-import type {
-  ResponseInputItem,
-  ResponseItem,
-} from "openai/resources/responses/responses.mjs";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 
 import { TerminalChatCommandReview } from "./terminal-chat-command-review.js";
 import { log, isLoggingEnabled } from "../../utils/agent/log.js";
@@ -40,14 +37,16 @@ export default function TerminalChatInput({
 }: {
   isNew: boolean;
   loading: boolean;
-  submitInput: (input: Array<ResponseInputItem>) => void;
+  submitInput: (input: Array<ChatCompletionMessageParam>) => void;
   confirmationPrompt: React.ReactNode | null;
   submitConfirmation: (
     decision: ReviewDecision,
     customDenyMessage?: string,
   ) => void;
   setLastResponseId: (lastResponseId: string) => void;
-  setItems: React.Dispatch<React.SetStateAction<Array<ResponseItem>>>;
+  setItems: React.Dispatch<
+    React.SetStateAction<Array<ChatCompletionMessageParam>>
+  >;
   contextLeftPercent: number;
   openOverlay: () => void;
   openModelOverlay: () => void;
@@ -113,8 +112,7 @@ export default function TerminalChatInput({
           submitInput([
             {
               role: "user",
-              content: [{ type: "input_text", text: suggestion }],
-              type: "message",
+              content: [{ type: "text", text: suggestion }],
             },
           ]);
         }
@@ -180,10 +178,8 @@ export default function TerminalChatInput({
         setItems((prev) => [
           ...prev,
           {
-            id: `clear-${Date.now()}`,
-            type: "message",
-            role: "system",
-            content: [{ type: "input_text", text: "Context cleared" }],
+            role: "assistant",
+            content: [{ type: "text", text: "Context cleared" }],
           },
         ]);
 
