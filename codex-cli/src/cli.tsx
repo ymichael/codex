@@ -208,11 +208,22 @@ if (cli.flags.config) {
 if (!OPENAI_API_KEY) {
   // eslint-disable-next-line no-console
   console.error(
-    `\n${chalk.red("Missing OpenAI API key.")}\n\n` +
-      `Set the environment variable ${chalk.bold("OPENAI_API_KEY")} ` +
-      `and re-run this command.\n` +
-      `You can create a key here: ${chalk.bold(
+    `\n${chalk.red("Missing API key.")}\n\n` +
+      `Set one of the following environment variables:\n` +
+      `- ${chalk.bold("OPENAI_API_KEY")} for OpenAI models\n` +
+      `- ${chalk.bold("OPENROUTER_API_KEY")} for OpenRouter models\n` +
+      `- ${chalk.bold(
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+      )} for Google Gemini models\n\n` +
+      `Then re-run this command.\n` +
+      `You can create an OpenAI key here: ${chalk.bold(
         chalk.underline("https://platform.openai.com/account/api-keys"),
+      )}\n` +
+      `You can create an OpenRouter key here: ${chalk.bold(
+        chalk.underline("https://openrouter.ai/settings/keys"),
+      )}\n` +
+      `You can create a Google Generative AI key here: ${chalk.bold(
+        chalk.underline("https://aistudio.google.com/apikey"),
       )}\n`,
   );
   process.exit(1);
