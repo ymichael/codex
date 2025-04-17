@@ -23,7 +23,7 @@ import {
   INSTRUCTIONS_FILEPATH,
 } from "./utils/config";
 import { createInputItem } from "./utils/input-utils";
-import { preloadModels, reportMissingAPIKey } from "./utils/model-utils.js";
+import { preloadModels } from "./utils/model-utils.js";
 import {
   parseToolCallOutput,
   parseToolCallChatCompletion,
@@ -53,6 +53,7 @@ const cli = meow(
 
   Options
     -h, --help                 Show usage and exit
+    -m  --provider <provider>  Provider to use for completions (default: openai, options: openai, gemini, openrouter)
     -m, --model <model>        Model to use for completions (default: o4-mini)
     -i, --image <path>         Path(s) to image files to include as input
     -v, --view <rollout>       Inspect a previously saved rollout instead of starting a session
@@ -90,6 +91,7 @@ const cli = meow(
       help: { type: "boolean", aliases: ["h"] },
       view: { type: "string" },
       model: { type: "string", aliases: ["m"] },
+      provider: { type: "string", aliases: ["p"] },
       image: { type: "string", isMultiple: true, aliases: ["i"] },
       quiet: {
         type: "boolean",
@@ -203,17 +205,15 @@ if (cli.flags.config) {
 // API key handling
 // ---------------------------------------------------------------------------
 const fullContextMode = Boolean(cli.flags.fullContext);
+const provider = cli.flags.provider;
+
 let config = loadConfig(undefined, undefined, {
   cwd: process.cwd(),
+  provider: provider,
   disableProjectDoc: Boolean(cli.flags.noProjectDoc),
   projectDocPath: cli.flags.projectDoc as string | undefined,
   isFullContext: fullContextMode,
 });
-
-if (!config.apiKey) {
-  reportMissingAPIKey();
-  process.exit(1);
-}
 
 const prompt = cli.input[0];
 const model = cli.flags.model;
@@ -222,6 +222,7 @@ const imagePaths = cli.flags.image as Array<string> | undefined;
 config = {
   ...config,
   model: model ?? config.model,
+  provider: provider ?? config.provider,
 };
 
 let rollout: AppRollout | undefined;

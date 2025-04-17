@@ -7,7 +7,7 @@
 // compiled `dist/` output used by the published CLI.
 
 import type { FullAutoErrorMode } from "./auto-approval-mode.js";
-
+import { reportMissingAPIKeyForProvider } from "./model-utils.js";
 import { log, isLoggingEnabled } from "./agent/log.js";
 import { AutoApprovalMode } from "./auto-approval-mode.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -32,30 +32,90 @@ export const INSTRUCTIONS_FILEPATH = join(CONFIG_DIR, "instructions.md");
 export const OPENAI_TIMEOUT_MS =
   parseInt(process.env["OPENAI_TIMEOUT_MS"] || "0", 10) || undefined;
 
-export let OPENAI_API_KEY = "";
-export let DEFAULT_BASE_URL = "";
-export let DEFAULT_AGENTIC_MODEL = "";
-export let DEFAULT_FULL_CONTEXT_MODEL = "";
+export let DEFAULT_PROVIDER = "";
+export let API_KEY = "";
 
-if (process.env["GOOGLE_GENERATIVE_AI_API_KEY"]) {
-  OPENAI_API_KEY = process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
-  DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
-  DEFAULT_AGENTIC_MODEL = "gemini-2.5-pro-preview-03-25";
-  DEFAULT_FULL_CONTEXT_MODEL = "gemini-2.0-flash";
-} else if (process.env["OPENROUTER_API_KEY"]) {
-  OPENAI_API_KEY = process.env["OPENROUTER_API_KEY"];
-  DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
-  DEFAULT_AGENTIC_MODEL = "openai/o4-mini";
-  DEFAULT_FULL_CONTEXT_MODEL = "openai/o3";
-} else if (process.env["OPENAI_API_KEY"]) {
-  OPENAI_API_KEY = process.env["OPENAI_API_KEY"];
-  DEFAULT_BASE_URL = process.env["OPENAI_BASE_URL"] || "";
-  DEFAULT_AGENTIC_MODEL = "o4-mini";
-  DEFAULT_FULL_CONTEXT_MODEL = "o3";
+// Gracefully fallback to a provider if we have a missing API key.
+if (!process.env["OPENAI_API_KEY"]) {
+  if (process.env["GOOGLE_GENERATIVE_AI_API_KEY"]) {
+    DEFAULT_PROVIDER = "gemini";
+  } else if (process.env["OPENROUTER_API_KEY"]) {
+    DEFAULT_PROVIDER = "openrouter";
+  }
+}
+
+function getAPIKeyForProviderOrExit(provider: string): string {
+  switch (provider) {
+    case "openai":
+      if (process.env["OPENAI_API_KEY"]) {
+        return process.env["OPENAI_API_KEY"];
+      }
+      reportMissingAPIKeyForProvider(provider);
+      process.exit(1);
+    case "gemini":
+      if (process.env["GOOGLE_GENERATIVE_AI_API_KEY"]) {
+        return process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
+      }
+      reportMissingAPIKeyForProvider(provider);
+      process.exit(1);
+    case "openrouter":
+      if (process.env["OPENROUTER_API_KEY"]) {
+        return process.env["OPENROUTER_API_KEY"];
+      }
+      reportMissingAPIKeyForProvider(provider);
+      process.exit(1);
+    default:
+      reportMissingAPIKeyForProvider("");
+      process.exit(1);
+  }
+}
+
+function baseURLForProvider(provider: string): string {
+  switch (provider) {
+    case "openai":
+      return "https://api.openai.com/v1";
+    case "ollama":
+      return "http://localhost:11434/v1";
+    case "gemini":
+      return "https://generativelanguage.googleapis.com/v1beta/openai/";
+    case "openrouter":
+      return "https://openrouter.ai/api/v1";
+    default:
+      // TODO throw?
+      return "";
+  }
+}
+
+function defaultModelsForProvider(provider: string): {
+  agentic: string;
+  fullContext: string;
+} {
+  switch (provider) {
+    case "openai":
+      return {
+        agentic: "o4-mini",
+        fullContext: "o3",
+      };
+    case "gemini":
+      return {
+        agentic: "gemini-2.5-pro-preview-03-25",
+        fullContext: "gemini-2.0-flash",
+      };
+    case "openrouter":
+      return {
+        agentic: "openai/o4-mini",
+        fullContext: "openai/o3",
+      };
+    default:
+      return {
+        agentic: "",
+        fullContext: "",
+      };
+  }
 }
 
 export function setApiKey(apiKey: string): void {
-  OPENAI_API_KEY = apiKey;
+  API_KEY = apiKey;
 }
 
 // Formatting (quiet mode-only).
@@ -65,6 +125,7 @@ export const PRETTY_PRINT = Boolean(process.env["PRETTY_PRINT"] || "");
 export type StoredConfig = {
   model?: string;
   baseURL?: string;
+  provider?: string;
   approvalMode?: AutoApprovalMode;
   fullAutoErrorMode?: FullAutoErrorMode;
   memory?: MemoryConfig;
@@ -86,6 +147,7 @@ export type MemoryConfig = {
 export type AppConfig = {
   apiKey?: string;
   baseURL?: string;
+  provider?: string;
   model: string;
   instructions: string;
   fullAutoErrorMode?: FullAutoErrorMode;
@@ -186,6 +248,8 @@ export type LoadConfigOptions = {
   projectDocPath?: string;
   /** Whether we are in fullcontext mode. */
   isFullContext?: boolean;
+  /** The provider to use. */
+  provider?: string;
 };
 
 export const loadConfig = (
@@ -259,6 +323,11 @@ export const loadConfig = (
     .filter((s) => s && s.trim() !== "")
     .join("\n\n--- project-doc ---\n\n");
 
+  const storedProvider =
+    storedConfig.provider && storedConfig.provider.trim() !== ""
+      ? storedConfig.provider.trim()
+      : undefined;
+
   // Treat empty string ("" or whitespace) as absence so we can fall back to
   // the latest DEFAULT_MODEL.
   const storedModel =
@@ -271,14 +340,30 @@ export const loadConfig = (
       ? storedConfig.baseURL.trim()
       : undefined;
 
+  const providerOrDefault = options.provider ?? DEFAULT_PROVIDER;
+
+  const derivedBaseURL = storedProvider
+    ? baseURLForProvider(storedProvider)
+    : storedBaseURL ?? baseURLForProvider(providerOrDefault);
+
+  const derivedModels = storedProvider
+    ? defaultModelsForProvider(storedProvider)
+    : defaultModelsForProvider(providerOrDefault);
+
+  const derivedModel =
+    storedModel ??
+    (options.isFullContext
+      ? derivedModels?.fullContext
+      : derivedModels?.agentic);
+
+  const derivedProvider = storedProvider ?? providerOrDefault;
+  const apiKeyForProvider = getAPIKeyForProviderOrExit(derivedProvider);
+
   const config: AppConfig = {
-    model:
-      storedModel ??
-      (options.isFullContext
-        ? DEFAULT_FULL_CONTEXT_MODEL
-        : DEFAULT_AGENTIC_MODEL),
-    apiKey: OPENAI_API_KEY,
-    baseURL: storedBaseURL ?? DEFAULT_BASE_URL,
+    model: derivedModel,
+    apiKey: apiKeyForProvider,
+    provider: derivedProvider,
+    baseURL: derivedBaseURL,
     instructions: combinedInstructions,
   };
 

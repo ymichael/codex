@@ -18,10 +18,8 @@ let modelsPromise: Promise<Array<string>> | null = null;
 async function fetchModels(config: AppConfig): Promise<Array<string>> {
   // If the user has not configured an API key we cannot hit the network.
   if (!config.apiKey) {
-    reportMissingAPIKey();
     return [];
   }
-
   try {
     const openai = new OpenAI({
       apiKey: config.apiKey,
@@ -95,25 +93,55 @@ export async function isModelSupported(
   }
 }
 
-export function reportMissingAPIKey(): void {
+export function reportMissingAPIKeyForProvider(provider: string): void {
   // eslint-disable-next-line no-console
   console.error(
-    `\n${chalk.red("Missing API key.")}\n\n` +
-      `Set one of the following environment variables:\n` +
-      `- ${chalk.bold("OPENAI_API_KEY")} for OpenAI models\n` +
-      `- ${chalk.bold("OPENROUTER_API_KEY")} for OpenRouter models\n` +
-      `- ${chalk.bold(
-        "GOOGLE_GENERATIVE_AI_API_KEY",
-      )} for Google Gemini models\n\n` +
+    (provider
+      ? `\n${chalk.red("Missing API key for provider:")} ${provider}\n\n`
+      : `\n${chalk.red("Missing API key:")}\n\n`) +
+      `Please set the following environment variable:\n` +
+      (() => {
+        switch (provider) {
+          case "openai":
+            return `- ${chalk.bold("OPENAI_API_KEY")} for OpenAI models\n`;
+          case "openrouter":
+            return `- ${chalk.bold(
+              "OPENROUTER_API_KEY",
+            )} for OpenRouter models\n`;
+          case "gemini":
+            return `- ${chalk.bold(
+              "GOOGLE_GENERATIVE_AI_API_KEY",
+            )} for Google Gemini models\n`;
+          default:
+            return (
+              [
+                `- ${chalk.bold("OPENAI_API_KEY")} for OpenAI models`,
+                `- ${chalk.bold("OPENROUTER_API_KEY")} for OpenRouter models`,
+                `- ${chalk.bold(
+                  "GOOGLE_GENERATIVE_AI_API_KEY",
+                )} for Google Gemini models`,
+              ].join("\n") + "\n"
+            );
+        }
+      })() +
       `Then re-run this command.\n` +
-      `You can create an OpenAI key here: ${chalk.bold(
-        chalk.underline("https://platform.openai.com/account/api-keys"),
-      )}\n` +
-      `You can create an OpenRouter key here: ${chalk.bold(
-        chalk.underline("https://openrouter.ai/settings/keys"),
-      )}\n` +
-      `You can create a Google Generative AI key here: ${chalk.bold(
-        chalk.underline("https://aistudio.google.com/apikey"),
-      )}\n`,
+      (() => {
+        switch (provider) {
+          case "openai":
+            return `You can create an OpenAI key here: ${chalk.bold(
+              chalk.underline("https://platform.openai.com/account/api-keys"),
+            )}\n`;
+          case "openrouter":
+            return `You can create an OpenRouter key here: ${chalk.bold(
+              chalk.underline("https://openrouter.ai/settings/keys"),
+            )}\n`;
+          case "gemini":
+            return `You can create a Google Generative AI key here: ${chalk.bold(
+              chalk.underline("https://aistudio.google.com/apikey"),
+            )}\n`;
+          default:
+            return "";
+        }
+      })(),
   );
 }

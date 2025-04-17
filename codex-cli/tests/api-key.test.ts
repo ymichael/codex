@@ -20,15 +20,13 @@ afterEach(() => {
 
 describe("config.setApiKey", () => {
   it("overrides the exported OPENAI_API_KEY at runtime", async () => {
-    const { setApiKey, OPENAI_API_KEY } = await import(
-      "../src/utils/config.js"
-    );
+    const { setApiKey, API_KEY } = await import("../src/utils/config.js");
 
-    expect(OPENAI_API_KEY).toBe("");
+    expect(API_KEY).toBe("");
 
     setApiKey("my‑key");
 
-    const { OPENAI_API_KEY: liveRef } = await import("../src/utils/config.js");
+    const { API_KEY: liveRef } = await import("../src/utils/config.js");
 
     expect(liveRef).toBe("my‑key");
   });
