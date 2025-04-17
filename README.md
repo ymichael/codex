@@ -3,8 +3,6 @@
 
 <p align="center"><code>npm i -g open-codex</code></p>
 
-![Codex demo GIF using: codex "explain this codebase to me"](./.github/demo.gif)
-
 > **Important Note**: This is a fork of the [original OpenAI Codex CLI](https://github.com/openai/codex) with expanded model support and changed installation instructions. The main differences in this fork are:
 >
 > - Support for multiple AI providers (OpenAI, Gemini, OpenRouter, Ollama)
