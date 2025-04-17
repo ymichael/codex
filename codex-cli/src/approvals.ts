@@ -371,6 +371,11 @@ export function isSafeCommand(
             reason: "List Git branches",
             group: "Versioning",
           };
+        case "grep":
+          return {
+            reason: "Text search (grep)",
+            group: "Searching",
+          };
         case "log":
           return {
             reason: "Git log",
