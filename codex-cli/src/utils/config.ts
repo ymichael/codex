@@ -37,21 +37,21 @@ export let OPENAI_BASE_URL = "";
 export let DEFAULT_AGENTIC_MODEL = "";
 export let DEFAULT_FULL_CONTEXT_MODEL = "";
 
-if (process.env["OPENAI_API_KEY"]) {
-  OPENAI_API_KEY = process.env["OPENAI_API_KEY"];
-  OPENAI_BASE_URL = process.env["OPENAI_BASE_URL"] || "";
-  DEFAULT_AGENTIC_MODEL = "o4-mini";
-  DEFAULT_FULL_CONTEXT_MODEL = "o3";
+if (process.env["GOOGLE_GENERATIVE_AI_API_KEY"]) {
+  OPENAI_API_KEY = process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
+  OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
+  DEFAULT_AGENTIC_MODEL = "gemini-2.5-pro-preview-03-25";
+  DEFAULT_FULL_CONTEXT_MODEL = "gemini-2.0-flash";
 } else if (process.env["OPENROUTER_API_KEY"]) {
   OPENAI_API_KEY = process.env["OPENROUTER_API_KEY"];
   OPENAI_BASE_URL = "https://openrouter.ai/api/v1";
   DEFAULT_AGENTIC_MODEL = "openai/o4-mini";
   DEFAULT_FULL_CONTEXT_MODEL = "openai/o3";
-} else if (process.env["GOOGLE_GENERATIVE_AI_API_KEY"]) {
-  OPENAI_API_KEY = process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
-  OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
-  DEFAULT_AGENTIC_MODEL = "gemini-2.5-pro-preview-03-25";
-  DEFAULT_FULL_CONTEXT_MODEL = "gemini-2.0-flash";
+} else if (process.env["OPENAI_API_KEY"]) {
+  OPENAI_API_KEY = process.env["OPENAI_API_KEY"];
+  OPENAI_BASE_URL = process.env["OPENAI_BASE_URL"] || "";
+  DEFAULT_AGENTIC_MODEL = "o4-mini";
+  DEFAULT_FULL_CONTEXT_MODEL = "o3";
 }
 
 export function setApiKey(apiKey: string): void {
