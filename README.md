@@ -1,7 +1,7 @@
-<h1 align="center">Codex CLI (forked)</h1>
+<h1 align="center">Open Codex CLI</h1>
 <p align="center">Lightweight coding agent that runs in your terminal</p>
 
-<p align="center"><code>npm i -g @ymichael/codex</code></p>
+<p align="center"><code>npm i -g open-codex</code></p>
 
 ![Codex demo GIF using: codex "explain this codebase to me"](./.github/demo.gif)
 
@@ -10,7 +10,7 @@
 > - Support for multiple AI providers (OpenAI, Gemini, OpenRouter, Ollama)
 > - Uses the [Chat Completion API instead of the Responses API](https://platform.openai.com/docs/guides/responses-vs-chat-completions) which allows us to support any openai compatible provider and model.
 > - All other functionality remains similar to the original project
-> - You can install this fork globally with `npm i -g @ymichael/codex`
+> - You can install this fork globally with `npm i -g open-codex`
 
 ---
 
@@ -63,7 +63,7 @@ Help us improve by filing issues or submitting PRs (see the section below for ho
 Install globally:
 
 ```shell
-npm install -g @ymichael/codex
+npm install -g open-codex
 ```
 
 Next, set your API key as an environment variable (shown here with OpenAI, but other providers are supported):
@@ -77,17 +77,17 @@ export OPENAI_API_KEY="your-api-key-here"
 Run interactively:
 
 ```shell
-codex
+open-codex
 ```
 
 Or, run with a prompt as input (and optionally in `Full Auto` mode):
 
 ```shell
-codex "explain this codebase to me"
+open-codex "explain this codebase to me"
 ```
 
 ```shell
-codex --approval-mode full-auto "create the fanciest todo-list app"
+open-codex --approval-mode full-auto "create the fanciest todo-list app"
 ```
 
 That's it – Codex will scaffold a file, run it inside a sandbox, install any
@@ -168,12 +168,12 @@ Both approaches are _transparent_ to everyday usage – you still run `codex` fr
 
 ## CLI Reference
 
-| Command                              | Purpose                             | Example                              |
-| ------------------------------------ | ----------------------------------- | ------------------------------------ |
-| `codex`                              | Interactive REPL                    | `codex`                              |
-| `codex "…"`                          | Initial prompt for interactive REPL | `codex "fix lint errors"`            |
-| `codex -q "…"`                       | Non‑interactive "quiet mode"        | `codex -q --json "explain utils.ts"` |
-| `codex completion <bash\|zsh\|fish>` | Print shell completion script       | `codex completion bash`              |
+| Command                                   | Purpose                             | Example                              |
+| ----------------------------------------- | ----------------------------------- | ------------------------------------ |
+| `open-codex`                              | Interactive REPL                    | `codex`                              |
+| `open-codex "…"`                          | Initial prompt for interactive REPL | `codex "fix lint errors"`            |
+| `open-codex -q "…"`                       | Non‑interactive "quiet mode"        | `codex -q --json "explain utils.ts"` |
+| `open-codex completion <bash\|zsh\|fish>` | Print shell completion script       | `codex completion bash`              |
 
 Key flags: `--model/-m`, `--approval-mode/-a`, and `--quiet/-q`.
 
@@ -198,9 +198,9 @@ Run Codex head‑less in pipelines. Example GitHub Action step:
 ```yaml
 - name: Update changelog via Codex
   run: |
-    npm install -g @ymichael/codex
+    npm install -g open-codex
     export OPENAI_API_KEY="${{ secrets.OPENAI_KEY }}"
-    codex -a auto-edit --quiet "update CHANGELOG for next release"
+    open-codex -a auto-edit --quiet "update CHANGELOG for next release"
 ```
 
 Set `CODEX_QUIET_MODE=1` to silence interactive UI noise.
@@ -229,9 +229,9 @@ Below are a few bite‑size examples you can copy‑paste. Replace the text in q
 <summary><strong>From npm (Recommended)</strong></summary>
 
 ```bash
-npm install -g @ymichael/codex
+npm install -g open-codex
 # or
-yarn global add @ymichael/codex
+yarn global add open-codex
 ```
 
 </details>
