@@ -257,7 +257,7 @@ async function execCommand(
   };
 }
 
-const isInContainer = async (): Promise<boolean> => {
+const isInLinux = async (): Promise<boolean> => {
   try {
     await access("/proc/1/cgroup");
     return true;
@@ -270,7 +270,7 @@ async function getSandbox(runInSandbox: boolean): Promise<SandboxType> {
   if (runInSandbox) {
     if (process.platform === "darwin") {
       return SandboxType.MACOS_SEATBELT;
-    } else if (await isInContainer()) {
+    } else if (await isInLinux()) {
       return SandboxType.NONE;
     } else if (process.platform === "win32") {
       // On Windows, we don't have a sandbox implementation yet, so we fall back to NONE
