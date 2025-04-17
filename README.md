@@ -40,6 +40,7 @@
   - [Releasing `codex`](#releasing-codex)
 - [Security \& Responsible AI](#securityresponsibleai)
 - [License](#license)
+- [Zero Data Retention (ZDR) Organization Limitation](#zero-data-retention-zdr-organization-limitation)
 
 </details>
 
@@ -359,6 +360,36 @@ You can also use models from other providers like Gemini and OpenRouter. See the
 </details>
 
 ---
+
+## Zero Data Retention (ZDR) Organization Limitation
+
+> **Note:** Codex CLI does **not** currently support OpenAI organizations with [Zero Data Retention (ZDR)](https://platform.openai.com/docs/guides/your-data#zero-data-retention) enabled.
+
+If your OpenAI organization has Zero Data Retention enabled, you may encounter errors such as:
+
+```
+OpenAI rejected the request. Error details: Status: 400, Code: unsupported_parameter, Type: invalid_request_error, Message: 400 Previous response cannot be used for this organization due to Zero Data Retention.
+```
+
+**Why?**
+
+- Codex CLI relies on the Responses API with `store:true` to enable internal reasoning steps.
+- As noted in the [docs](https://platform.openai.com/docs/guides/your-data#responses-api), the Responses API requires a 30-day retention period by default, or when the store parameter is set to true.
+- ZDR organizations cannot use `store:true`, so requests will fail.
+
+**What can I do?**
+
+- If you are part of a ZDR organization, Codex CLI will not work until support is added.
+- We are tracking this limitation and will update the documentation if support becomes available.
+
+## Funding Opportunity
+
+We’re excited to launch a **$1 million initiative** supporting open source projects that use Codex CLI and other OpenAI models.
+
+- Grants are awarded in **$25,000** API credit increments.
+- Applications are reviewed **on a rolling basis**.
+
+**Interested? [Apply here](https://openai.com/form/codex-open-source-fund/).**
 
 ## Contributing
 
