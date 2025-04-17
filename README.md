@@ -258,15 +258,17 @@ npm link
 
 Codex looks for config files in **`~/.codex/`**.
 
-```yaml
-# ~/.codex/config.yaml
-model: o4-mini # Default model
-fullAutoErrorMode: ask-user # or ignore-and-continue
+```json
+// ~/.codex/config.json
+{
+  "model": "o4-mini", // Default model
+  "fullAutoErrorMode": "ask-user", // or ignore-and-continue
+}
 ```
 
 You can also define custom instructions:
 
-```yaml
+```md
 # ~/.codex/instructions.md
 - Always respond with emojis
 - Only use git commands if I explicitly mention you should
@@ -328,7 +330,9 @@ Not directly. It requires [Windows Subsystem for Linux (WSL2)](https://learn.mic
 <details>
 <summary>Which models are supported?</summary>
 
-Any model available with [Responses API](https://platform.openai.com/docs/api-reference/responses). The default is `o4-mini`, but pass `--model gpt-4o` or set `model: gpt-4o` in your config file to override.
+The default is `o4-mini`, but pass `--model gpt-4o` or set `model: gpt-4o` in your config file to override.
+
+You can also use models from other providers like Gemini and OpenRouter. See the [Configuration](#configuration) section for more details.
 
 </details>
 
