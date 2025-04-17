@@ -208,7 +208,7 @@ Set `CODEX_QUIET_MODE=1` to silence interactive UI noise.
 Setting the environment variable `DEBUG=true` prints full API request and response details:
 
 ```shell
-DEBUG=true codex
+DEBUG=true open-codex
 ```
 
 ---
