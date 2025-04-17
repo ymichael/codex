@@ -239,8 +239,8 @@ yarn global add open-codex
 
 ```bash
 # Clone the repository and navigate to the CLI package
-git clone https://github.com/ymichael/codex.git
-cd codex/codex-cli
+git clone https://github.com/ymichael/open-codex.git
+cd open-codex/codex-cli
 
 # Install dependencies and build
 npm install
@@ -323,7 +323,7 @@ export GOOGLE_GENERATIVE_AI_API_KEY="your-gemini-api-key-here"
 <details>
 <summary>What's the difference between this and the original OpenAI Codex CLI?</summary>
 
-This is a fork of the original OpenAI Codex CLI project with expanded support for multiple AI providers beyond just OpenAI. The installation package is also different (`@ymichael/codex` instead of `@openai/codex`), but the core functionality remains similar.
+This is a fork of the original OpenAI Codex CLI project with expanded support for multiple AI providers beyond just OpenAI. The installation package is also different (`open-codex` instead of `@openai/codex`), but the core functionality remains similar.
 
 </details>
 
