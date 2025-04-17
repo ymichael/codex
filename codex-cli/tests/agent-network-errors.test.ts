@@ -112,7 +112,7 @@ describe("AgentLoop – network resilience", () => {
       onItem: (i) => received.push(i),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [
@@ -153,7 +153,7 @@ describe("AgentLoop – network resilience", () => {
       onItem: (i) => received.push(i),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [

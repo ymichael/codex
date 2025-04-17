@@ -119,7 +119,7 @@ describe("AgentLoop", () => {
       onItem: () => {},
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     // Kick off a single run and wait for it to finish. The fake OpenAI client

@@ -61,7 +61,7 @@ describe("AgentLoop – invalid request / 4xx errors", () => {
       onItem: (i) => received.push(i),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [

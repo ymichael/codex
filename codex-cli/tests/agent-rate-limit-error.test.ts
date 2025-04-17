@@ -96,7 +96,7 @@ describe("AgentLoop – OpenAI rate limit errors", () => {
       onItem: (i) => received.push(i),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [

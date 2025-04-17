@@ -47,7 +47,9 @@ export default function TerminalChat({
   fullStdout,
 }: Props): React.ReactElement {
   const [model, setModel] = useState<string>(config.model);
-  const [lastResponseId, setLastResponseId] = useState<string | null>(null);
+  const [prevItems, setPrevItems] = useState<Array<ChatCompletionMessageParam>>(
+    [],
+  );
   const [items, setItems] = useState<Array<ChatCompletionMessageParam>>([]);
   const [loading, setLoading] = useState<boolean>(false);
   // Allow switching approval modes at runtime via an overlay.
@@ -101,7 +103,7 @@ export default function TerminalChat({
       config,
       instructions: config.instructions,
       approvalPolicy,
-      onLastResponseId: setLastResponseId,
+      onReset: () => setPrevItems([]),
       onItem: (item) => {
         log(`onItem: ${JSON.stringify(item)}`);
         setItems((prev) => {
@@ -109,6 +111,7 @@ export default function TerminalChat({
           saveRollout(updated);
           return updated;
         });
+        setPrevItems((prev) => [...prev, item]);
       },
       onLoading: setLoading,
       getCommandConfirmation: async (
@@ -197,7 +200,7 @@ export default function TerminalChat({
       // Clear them to prevent subsequent runs
       setInitialPrompt("");
       setInitialImagePaths([]);
-      agent?.run(inputItems);
+      agent?.run(inputItems, prevItems);
     };
     processInitialInputItems();
   }, [agent, initialPrompt, initialImagePaths]);
@@ -246,7 +249,7 @@ export default function TerminalChat({
             loading={loading}
             setItems={setItems}
             isNew={Boolean(items.length === 0)}
-            setLastResponseId={setLastResponseId}
+            setPrevItems={setPrevItems}
             confirmationPrompt={confirmationPrompt}
             submitConfirmation={(
               decision: ReviewDecision,
@@ -276,7 +279,7 @@ export default function TerminalChat({
               setLoading(false);
             }}
             submitInput={(inputs) => {
-              agent.run(inputs, lastResponseId || "");
+              agent.run(inputs, prevItems);
               return {};
             }}
           />
@@ -287,7 +290,7 @@ export default function TerminalChat({
         {overlayMode === "model" && (
           <ModelOverlay
             currentModel={model}
-            hasLastResponse={Boolean(lastResponseId)}
+            hasLastResponse={Boolean(prevItems.length > 0)}
             onSelect={(newModel) => {
               if (isLoggingEnabled()) {
                 log(
@@ -301,9 +304,9 @@ export default function TerminalChat({
               setLoading(false);
 
               setModel(newModel);
-              setLastResponseId((prev) =>
-                prev && newModel !== model ? null : prev,
-              );
+              setPrevItems((prev) => {
+                return prev && newModel !== model ? [] : prev;
+              });
 
               setItems((prev) => [
                 ...prev,

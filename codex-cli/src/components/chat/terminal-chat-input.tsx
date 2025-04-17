@@ -25,7 +25,7 @@ export default function TerminalChatInput({
   submitInput,
   confirmationPrompt,
   submitConfirmation,
-  setLastResponseId,
+  setPrevItems,
   setItems,
   contextLeftPercent,
   openOverlay,
@@ -43,7 +43,7 @@ export default function TerminalChatInput({
     decision: ReviewDecision,
     customDenyMessage?: string,
   ) => void;
-  setLastResponseId: (lastResponseId: string) => void;
+  setPrevItems: (prevItems: Array<ChatCompletionMessageParam>) => void;
   setItems: React.Dispatch<
     React.SetStateAction<Array<ChatCompletionMessageParam>>
   >;
@@ -170,7 +170,7 @@ export default function TerminalChatInput({
       } else if (inputValue === "/clear" || inputValue === "clear") {
         setInput("");
         setSessionId("");
-        setLastResponseId("");
+        setPrevItems([]);
         clearTerminal();
 
         // Emit a system message to confirm the clear action.  We *append*
@@ -210,7 +210,7 @@ export default function TerminalChatInput({
     [
       setInput,
       submitInput,
-      setLastResponseId,
+      setPrevItems,
       setItems,
       app,
       setHistory,

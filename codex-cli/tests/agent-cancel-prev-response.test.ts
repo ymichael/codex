@@ -102,7 +102,7 @@ describe("cancel clears previous_response_id", () => {
       onItem: () => {},
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
       config: { model: "any", instructions: "" },
     });
 

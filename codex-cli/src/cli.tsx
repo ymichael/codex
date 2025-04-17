@@ -355,7 +355,7 @@ async function runQuietMode({
     ): Promise<CommandConfirmation> => {
       return Promise.resolve({ review: ReviewDecision.NO_CONTINUE });
     },
-    onLastResponseId: () => {
+    onReset: () => {
       /* intentionally ignored in quiet mode */
     },
   });

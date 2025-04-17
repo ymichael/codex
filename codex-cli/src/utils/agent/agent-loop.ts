@@ -41,13 +41,13 @@ type AgentLoopParams = {
   approvalPolicy: ApprovalPolicy;
   onItem: (item: ChatCompletionMessageParam) => void;
   onLoading: (loading: boolean) => void;
+  onReset: () => void;
 
   /** Called when the command is not auto-approved to request explicit user review. */
   getCommandConfirmation: (
     command: Array<string>,
     applyPatch: ApplyPatchCommand | undefined,
   ) => Promise<CommandConfirmation>;
-  onLastResponseId: (lastResponseId: string) => void;
 };
 
 export class AgentLoop {
@@ -69,7 +69,6 @@ export class AgentLoop {
     command: Array<string>,
     applyPatch: ApplyPatchCommand | undefined,
   ) => Promise<CommandConfirmation>;
-  private onLastResponseId: (lastResponseId: string) => void;
 
   /**
    * A reference to the currently active stream returned from the OpenAI
@@ -96,6 +95,8 @@ export class AgentLoop {
   private terminated = false;
   /** Master abort controller – fires when terminate() is invoked. */
   private readonly hardAbort = new AbortController();
+
+  private onReset: () => void;
 
   /**
    * Abort the ongoing request/stream, if any. This allows callers (typically
@@ -127,7 +128,7 @@ export class AgentLoop {
     // the stored lastResponseId so a subsequent run starts a clean turn.
     if (this.pendingAborts.size === 0) {
       try {
-        this.onLastResponseId("");
+        this.onReset();
       } catch {
         /* ignore */
       }
@@ -144,7 +145,7 @@ export class AgentLoop {
     // the stored lastResponseId so a subsequent run starts a clean turn.
     if (this.pendingAborts.size === 0) {
       try {
-        this.onLastResponseId("");
+        this.onReset();
       } catch {
         /* ignore */
       }
@@ -214,7 +215,7 @@ export class AgentLoop {
     onItem,
     onLoading,
     getCommandConfirmation,
-    onLastResponseId,
+    onReset,
   }: AgentLoopParams & { config?: AppConfig }) {
     this.model = model;
     this.instructions = instructions;
@@ -234,7 +235,7 @@ export class AgentLoop {
     this.onItem = onItem;
     this.onLoading = onLoading;
     this.getCommandConfirmation = getCommandConfirmation;
-    this.onLastResponseId = onLastResponseId;
+    this.onReset = onReset;
     this.sessionId = getSessionId() || randomUUID().replaceAll("-", "");
     // Configure OpenAI client with optional timeout (ms) from environment
     const timeoutMs = OPENAI_TIMEOUT_MS;
@@ -392,7 +393,7 @@ export class AgentLoop {
 
   public async run(
     input: Array<ChatCompletionMessageParam>,
-    _previousResponseId: string = "",
+    prevItems: Array<ChatCompletionMessageParam> = [],
   ): Promise<void> {
     // ---------------------------------------------------------------------
     // Top‑level error wrapper so that known transient network issues like
@@ -498,6 +499,7 @@ export class AgentLoop {
         for (const item of turnInput) {
           stageItem(item);
         }
+
         // Send request to OpenAI with retry on timeout
         let stream: Stream<ChatCompletionChunk> | undefined = undefined;
         // Retry loop for transient errors. Up to MAX_RETRIES attempts.
@@ -533,6 +535,7 @@ export class AgentLoop {
                   role: "system",
                   content: mergedInstructions,
                 },
+                ...prevItems,
                 ...(staged.filter(
                   Boolean,
                 ) as Array<ChatCompletionMessageParam>),
@@ -760,8 +763,6 @@ export class AgentLoop {
                   if (results.length > 0) {
                     // Add results to the next turn's input
                     turnInput.push(...results);
-                    // Update the last response ID for continuity
-                    this.onLastResponseId(chunk.id);
                   }
                 } else if (message && Object.keys(message).length > 0) {
                   stageItem(message);

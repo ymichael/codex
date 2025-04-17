@@ -109,7 +109,7 @@ describe("Agent terminate (hard cancel)", () => {
       onItem: (item) => received.push(item),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [
@@ -144,7 +144,7 @@ describe("Agent terminate (hard cancel)", () => {
       onItem: () => {},
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     agent.terminate();
