@@ -20,17 +20,15 @@ import { AutoApprovalMode } from "./utils/auto-approval-mode";
 import {
   loadConfig,
   PRETTY_PRINT,
-  OPENAI_API_KEY,
   INSTRUCTIONS_FILEPATH,
 } from "./utils/config";
 import { createInputItem } from "./utils/input-utils";
-import { preloadModels } from "./utils/model-utils.js";
+import { preloadModels, reportMissingAPIKey } from "./utils/model-utils.js";
 import {
   parseToolCallOutput,
   parseToolCallChatCompletion,
 } from "./utils/parsers";
 import { onExit, setInkRenderer } from "./utils/terminal";
-import chalk from "chalk";
 import { spawnSync } from "child_process";
 import fs from "fs";
 import { render } from "ink";
@@ -204,31 +202,6 @@ if (cli.flags.config) {
 // ---------------------------------------------------------------------------
 // API key handling
 // ---------------------------------------------------------------------------
-
-if (!OPENAI_API_KEY) {
-  // eslint-disable-next-line no-console
-  console.error(
-    `\n${chalk.red("Missing API key.")}\n\n` +
-      `Set one of the following environment variables:\n` +
-      `- ${chalk.bold("OPENAI_API_KEY")} for OpenAI models\n` +
-      `- ${chalk.bold("OPENROUTER_API_KEY")} for OpenRouter models\n` +
-      `- ${chalk.bold(
-        "GOOGLE_GENERATIVE_AI_API_KEY",
-      )} for Google Gemini models\n\n` +
-      `Then re-run this command.\n` +
-      `You can create an OpenAI key here: ${chalk.bold(
-        chalk.underline("https://platform.openai.com/account/api-keys"),
-      )}\n` +
-      `You can create an OpenRouter key here: ${chalk.bold(
-        chalk.underline("https://openrouter.ai/settings/keys"),
-      )}\n` +
-      `You can create a Google Generative AI key here: ${chalk.bold(
-        chalk.underline("https://aistudio.google.com/apikey"),
-      )}\n`,
-  );
-  process.exit(1);
-}
-
 const fullContextMode = Boolean(cli.flags.fullContext);
 let config = loadConfig(undefined, undefined, {
   cwd: process.cwd(),
@@ -237,12 +210,16 @@ let config = loadConfig(undefined, undefined, {
   isFullContext: fullContextMode,
 });
 
+if (!config.apiKey) {
+  reportMissingAPIKey();
+  process.exit(1);
+}
+
 const prompt = cli.input[0];
 const model = cli.flags.model;
 const imagePaths = cli.flags.image as Array<string> | undefined;
 
 config = {
-  apiKey: OPENAI_API_KEY,
   ...config,
   model: model ?? config.model,
 };
@@ -322,7 +299,7 @@ const approvalPolicy: ApprovalPolicy =
     ? AutoApprovalMode.AUTO_EDIT
     : AutoApprovalMode.SUGGEST;
 
-preloadModels();
+preloadModels(config);
 
 const instance = render(
   <App

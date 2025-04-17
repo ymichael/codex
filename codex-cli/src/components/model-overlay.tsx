@@ -5,6 +5,7 @@ import {
 } from "../utils/model-utils.js";
 import { Box, Text, useInput } from "ink";
 import React, { useEffect, useState } from "react";
+import { AppConfig } from "src/utils/config.js";
 
 /**
  * Props for <ModelOverlay>.
@@ -16,6 +17,7 @@ import React, { useEffect, useState } from "react";
  */
 type Props = {
   currentModel: string;
+  config: AppConfig;
   hasLastResponse: boolean;
   onSelect: (model: string) => void;
   onExit: () => void;
@@ -24,6 +26,7 @@ type Props = {
 export default function ModelOverlay({
   currentModel,
   hasLastResponse,
+  config,
   onSelect,
   onExit,
 }: Props): JSX.Element {
@@ -33,7 +36,7 @@ export default function ModelOverlay({
 
   useEffect(() => {
     (async () => {
-      const models = await getAvailableModels();
+      const models = await getAvailableModels(config);
 
       // Split the list into recommended and “other” models.
       const recommended = RECOMMENDED_MODELS.filter((m) => models.includes(m));
@@ -48,7 +51,7 @@ export default function ModelOverlay({
         })),
       );
     })();
-  }, []);
+  }, [config]);
 
   // ---------------------------------------------------------------------------
   // If the conversation already contains a response we cannot change the model

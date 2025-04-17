@@ -33,23 +33,23 @@ export const OPENAI_TIMEOUT_MS =
   parseInt(process.env["OPENAI_TIMEOUT_MS"] || "0", 10) || undefined;
 
 export let OPENAI_API_KEY = "";
-export let OPENAI_BASE_URL = "";
+export let DEFAULT_BASE_URL = "";
 export let DEFAULT_AGENTIC_MODEL = "";
 export let DEFAULT_FULL_CONTEXT_MODEL = "";
 
 if (process.env["GOOGLE_GENERATIVE_AI_API_KEY"]) {
   OPENAI_API_KEY = process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
-  OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
+  DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
   DEFAULT_AGENTIC_MODEL = "gemini-2.5-pro-preview-03-25";
   DEFAULT_FULL_CONTEXT_MODEL = "gemini-2.0-flash";
 } else if (process.env["OPENROUTER_API_KEY"]) {
   OPENAI_API_KEY = process.env["OPENROUTER_API_KEY"];
-  OPENAI_BASE_URL = "https://openrouter.ai/api/v1";
+  DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
   DEFAULT_AGENTIC_MODEL = "openai/o4-mini";
   DEFAULT_FULL_CONTEXT_MODEL = "openai/o3";
 } else if (process.env["OPENAI_API_KEY"]) {
   OPENAI_API_KEY = process.env["OPENAI_API_KEY"];
-  OPENAI_BASE_URL = process.env["OPENAI_BASE_URL"] || "";
+  DEFAULT_BASE_URL = process.env["OPENAI_BASE_URL"] || "";
   DEFAULT_AGENTIC_MODEL = "o4-mini";
   DEFAULT_FULL_CONTEXT_MODEL = "o3";
 }
@@ -64,6 +64,7 @@ export const PRETTY_PRINT = Boolean(process.env["PRETTY_PRINT"] || "");
 // Represents config as persisted in config.json.
 export type StoredConfig = {
   model?: string;
+  baseURL?: string;
   approvalMode?: AutoApprovalMode;
   fullAutoErrorMode?: FullAutoErrorMode;
   memory?: MemoryConfig;
@@ -84,6 +85,7 @@ export type MemoryConfig = {
 // Represents full runtime config, including loaded instructions.
 export type AppConfig = {
   apiKey?: string;
+  baseURL?: string;
   model: string;
   instructions: string;
   fullAutoErrorMode?: FullAutoErrorMode;
@@ -264,12 +266,19 @@ export const loadConfig = (
       ? storedConfig.model.trim()
       : undefined;
 
+  const storedBaseURL =
+    storedConfig.baseURL && storedConfig.baseURL.trim() !== ""
+      ? storedConfig.baseURL.trim()
+      : undefined;
+
   const config: AppConfig = {
     model:
       storedModel ??
       (options.isFullContext
         ? DEFAULT_FULL_CONTEXT_MODEL
         : DEFAULT_AGENTIC_MODEL),
+    apiKey: OPENAI_API_KEY,
+    baseURL: storedBaseURL ?? DEFAULT_BASE_URL,
     instructions: combinedInstructions,
   };
 

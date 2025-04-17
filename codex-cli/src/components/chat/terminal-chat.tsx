@@ -290,6 +290,7 @@ export default function TerminalChat({
         {overlayMode === "model" && (
           <ModelOverlay
             currentModel={model}
+            config={config}
             hasLastResponse={Boolean(prevItems.length > 0)}
             onSelect={(newModel) => {
               if (isLoggingEnabled()) {

@@ -8,11 +8,7 @@ import type {
 import type { ReasoningEffort } from "openai/resources.mjs";
 
 import { log, isLoggingEnabled } from "./log.js";
-import {
-  OPENAI_API_KEY,
-  OPENAI_BASE_URL,
-  OPENAI_TIMEOUT_MS,
-} from "../config.js";
+import { OPENAI_TIMEOUT_MS } from "../config.js";
 import { parseToolCallArguments } from "../parsers.js";
 import {
   ORIGIN,
@@ -228,7 +224,8 @@ export class AgentLoop {
     this.sessionId = getSessionId() || randomUUID().replaceAll("-", "");
     // Configure OpenAI client with optional timeout (ms) from environment
     const timeoutMs = OPENAI_TIMEOUT_MS;
-    const apiKey = this.config.apiKey ?? OPENAI_API_KEY ?? "";
+    const apiKey = this.config.apiKey;
+    const baseURL = this.config.baseURL;
     this.oai = new OpenAI({
       // The OpenAI JS SDK only requires `apiKey` when making requests against
       // the official API.  When running unit‑tests we stub out all network
@@ -237,7 +234,7 @@ export class AgentLoop {
       // errors inside the SDK (it validates that `apiKey` is a non‑empty
       // string when the field is present).
       ...(apiKey ? { apiKey } : {}),
-      baseURL: OPENAI_BASE_URL,
+      ...(baseURL ? { baseURL } : {}),
       defaultHeaders: {
         originator: ORIGIN,
         version: CLI_VERSION,

@@ -40,11 +40,12 @@ describe("model-utils – offline resilience", () => {
 
     // Re‑import after env change so the module picks up the new state.
     vi.resetModules();
-    const { isModelSupportedForResponses } = await import(
-      "../src/utils/model-utils.js"
-    );
+    const { isModelSupported } = await import("../src/utils/model-utils.js");
 
-    const supported = await isModelSupportedForResponses("o4-mini");
+    const supported = await isModelSupported("o4-mini", {
+      model: "",
+      instructions: "",
+    });
     expect(supported).toBe(true);
   });
 
@@ -59,12 +60,13 @@ describe("model-utils – offline resilience", () => {
     });
 
     vi.resetModules();
-    const { isModelSupportedForResponses } = await import(
-      "../src/utils/model-utils.js"
-    );
+    const { isModelSupported } = await import("../src/utils/model-utils.js");
 
     // Should resolve true despite the network failure
-    const supported = await isModelSupportedForResponses("some-model");
+    const supported = await isModelSupported("o4-mini", {
+      model: "",
+      instructions: "",
+    });
     expect(supported).toBe(true);
   });
 });
