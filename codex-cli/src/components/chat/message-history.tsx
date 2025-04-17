@@ -1,6 +1,7 @@
 import type { TerminalHeaderProps } from "./terminal-header.js";
 import type { GroupedResponseItem } from "./use-message-grouping.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
+
 import TerminalChatResponseItem from "./terminal-chat-response-item.js";
 import TerminalHeader from "./terminal-header.js";
 import { Box, Static } from "ink";

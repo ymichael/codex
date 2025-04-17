@@ -1,7 +1,8 @@
 import type { MultilineTextEditorHandle } from "./multiline-editor";
 import type { ReviewDecision } from "../../utils/agent/review.js";
-import type { ResponseItem } from "openai/resources/responses/responses.mjs";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
+import type { ResponseItem } from "openai/resources/responses/responses.mjs";
+
 import MultilineTextEditor from "./multiline-editor";
 import { TerminalChatCommandReview } from "./terminal-chat-command-review.js";
 import { log, isLoggingEnabled } from "../../utils/agent/log.js";

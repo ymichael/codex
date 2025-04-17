@@ -1,6 +1,5 @@
 import type * as fsType from "fs";
-
-import { loadConfig, saveConfig, setApiKey } from "../src/utils/config.js"; // parent import first
+import { loadConfig, saveConfig } from "../src/utils/config.js"; // parent import first
 import { tmpdir } from "os";
 import { join } from "path";
 import { test, expect, beforeEach, afterEach, vi } from "vitest";

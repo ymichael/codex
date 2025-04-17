@@ -2,8 +2,9 @@ import type { ApplyPatchCommand, ApprovalPolicy } from "../../approvals.js";
 import type { CommandConfirmation } from "../../utils/agent/agent-loop.js";
 import type { AppConfig } from "../../utils/config.js";
 import type { ColorName } from "chalk";
-import type { ReviewDecision } from "src/utils/agent/review.ts";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
+import type { ReviewDecision } from "src/utils/agent/review.ts";
+
 import TerminalChatInput from "./terminal-chat-input.js";
 import { TerminalChatToolCallCommand } from "./terminal-chat-tool-call-item.js";
 import { calculateContextPercentRemaining } from "./terminal-chat-utils.js";
@@ -203,7 +204,7 @@ export default function TerminalChat({
       agent?.run(inputItems, prevItems);
     };
     processInitialInputItems();
-  }, [agent, initialPrompt, initialImagePaths]);
+  }, [agent, initialPrompt, initialImagePaths, prevItems]);
 
   // Just render every item in order, no grouping/collapse
   const lastMessageBatch = items.map((item) => ({ item }));

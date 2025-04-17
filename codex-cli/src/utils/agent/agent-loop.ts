@@ -6,6 +6,7 @@ import type {
   ChatCompletionMessageParam,
 } from "openai/resources/chat/completions/completions.mjs";
 import type { ReasoningEffort } from "openai/resources.mjs";
+import type { Stream } from "openai/streaming.mjs";
 
 import { log, isLoggingEnabled } from "./log.js";
 import { OPENAI_TIMEOUT_MS } from "../config.js";
@@ -20,7 +21,6 @@ import {
 import { handleExecCommand } from "./handle-exec-command.js";
 import { randomUUID } from "node:crypto";
 import OpenAI, { APIConnectionTimeoutError } from "openai";
-import { Stream } from "openai/streaming.mjs";
 
 // Wait time before retrying after rate limit errors (ms).
 const RATE_LIMIT_RETRY_WAIT_MS = parseInt(
@@ -256,7 +256,7 @@ export class AgentLoop {
   }
 
   private async handleFunctionCall(
-    item: ChatCompletionMessageParam,
+    itemArg: ChatCompletionMessageParam,
   ): Promise<Array<ChatCompletionMessageParam>> {
     // If the agent has been canceled in the meantime we should not perform any
     // additional work. Returning an empty array ensures that we neither execute
@@ -266,10 +266,14 @@ export class AgentLoop {
     if (this.canceled) {
       return [];
     }
-    // @ts-expect-error
-    if (item.tool_calls?.[0]) {
-      // @ts-expect-error
-      item = item.tool_calls?.[0];
+    if (itemArg.role !== "assistant") {
+      return [];
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let item: any = itemArg;
+    if (itemArg.tool_calls?.[0]) {
+      item = itemArg.tool_calls?.[0];
     }
     // ---------------------------------------------------------------------
     // Normalise the function‑call item into a consistent shape regardless of
@@ -757,7 +761,7 @@ export class AgentLoop {
                 message.content += content;
               }
               if (message && !message.tool_calls && tool_call) {
-                // @ts-expect-error
+                // @ts-expect-error FIXME
                 message.tool_calls = [tool_call];
               } else {
                 if (tool_call?.function?.name) {
@@ -1010,7 +1014,7 @@ export class AgentLoop {
   }
 
   // we need until we can depend on streaming events
-  // @ts-expect-error
+  // @ts-expect-error Why was this needed?
   private async processEventsWithoutStreaming(
     output: Array<ChatCompletionMessageParam>,
     emitItem: (item: ChatCompletionMessageParam) => void,

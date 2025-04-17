@@ -6,9 +6,9 @@ import "dotenv/config";
 (process as any).noDeprecation = true;
 
 import type { AppRollout } from "./app";
+import type { ApprovalPolicy } from "./approvals";
 import type { CommandConfirmation } from "./utils/agent/agent-loop";
 import type { AppConfig } from "./utils/config";
-import type { ApprovalPolicy } from "./approvals";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions/completions.mjs";
 
 import App from "./app";

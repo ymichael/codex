@@ -8,7 +8,6 @@ import { join } from "path";
 import { describe, expect, test, beforeEach, afterEach, vi } from "vitest";
 
 let projectDir: string;
-let configPath: string;
 let instructionsPath: string;
 
 beforeEach(() => {
@@ -16,8 +15,7 @@ beforeEach(() => {
   // Create fake .git dir to mark project root
   mkdirSync(join(projectDir, ".git"));
 
-  // Config & instructions paths under temp dir so we don't pollute real homedir
-  configPath = join(projectDir, "config.json");
+  // Instructions path under temp dir so we don't pollute real homedir
   instructionsPath = join(projectDir, "instructions.md");
 });
 

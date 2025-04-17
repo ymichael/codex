@@ -7,9 +7,10 @@
 // compiled `dist/` output used by the published CLI.
 
 import type { FullAutoErrorMode } from "./auto-approval-mode.js";
-import { reportMissingAPIKeyForProvider } from "./model-utils.js";
+
 import { log, isLoggingEnabled } from "./agent/log.js";
 import { AutoApprovalMode } from "./auto-approval-mode.js";
+import { reportMissingAPIKeyForProvider } from "./model-utils.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load as loadYaml, dump as dumpYaml } from "js-yaml";
 import { homedir } from "os";
@@ -52,18 +53,21 @@ function getAPIKeyForProviderOrExit(provider: string): string {
       }
       reportMissingAPIKeyForProvider(provider);
       process.exit(1);
+      break;
     case "gemini":
       if (process.env["GOOGLE_GENERATIVE_AI_API_KEY"]) {
         return process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
       }
       reportMissingAPIKeyForProvider(provider);
       process.exit(1);
+      break;
     case "openrouter":
       if (process.env["OPENROUTER_API_KEY"]) {
         return process.env["OPENROUTER_API_KEY"];
       }
       reportMissingAPIKeyForProvider(provider);
       process.exit(1);
+      break;
     case "ollama":
       // Ollama doesn't require an API key but the openai client requires one
       return "ollama";

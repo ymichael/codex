@@ -1,9 +1,10 @@
 import type { TerminalRendererOptions } from "marked-terminal";
-import type { ResponseReasoningItem } from "openai/resources/responses/responses";
 import type {
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
 } from "openai/resources/chat/completions.mjs";
+import type { ResponseReasoningItem } from "openai/resources/responses/responses";
+
 import { useTerminalSize } from "../../hooks/use-terminal-size";
 import {
   parseToolCallChatCompletion,
@@ -118,7 +119,7 @@ function TerminalChatResponseMessage({
   message: ChatCompletionMessageParam;
   fullStdout?: boolean;
 }) {
-  const contentParts: string[] = [];
+  const contentParts: Array<string> = [];
   if (typeof message.content === "string") {
     contentParts.push(message.content);
   } else if (Array.isArray(message.content)) {

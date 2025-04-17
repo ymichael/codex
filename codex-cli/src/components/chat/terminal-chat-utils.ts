@@ -1,5 +1,5 @@
-import type { ResponseItem } from "openai/resources/responses/responses.mjs";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
+import type { ResponseItem } from "openai/resources/responses/responses.mjs";
 
 import { approximateTokensUsed } from "../../utils/approximate-tokens-used.js";
 

@@ -1,3 +1,5 @@
+import type { AppConfig } from "src/utils/config.js";
+
 import TypeaheadOverlay from "./typeahead-overlay.js";
 import {
   getAvailableModels,
@@ -5,7 +7,6 @@ import {
 } from "../utils/model-utils.js";
 import { Box, Text, useInput } from "ink";
 import React, { useEffect, useState } from "react";
-import { AppConfig } from "src/utils/config.js";
 
 /**
  * Props for <ModelOverlay>.

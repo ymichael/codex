@@ -2,8 +2,9 @@ import type {
   ExecInput,
   ExecOutputMetadata,
 } from "./agent/sandbox/interface.js";
-import type { ResponseFunctionToolCall } from "openai/resources/responses/responses.mjs";
 import type { ChatCompletionMessageToolCall } from "openai/resources/chat/completions.mjs";
+import type { ResponseFunctionToolCall } from "openai/resources/responses/responses.mjs";
+
 import { log } from "node:console";
 import { formatCommandForDisplay } from "src/format-command.js";
 

@@ -1,5 +1,6 @@
+import type { AppConfig } from "./config";
+
 import chalk from "chalk";
-import { AppConfig } from "./config";
 import OpenAI from "openai";
 
 const MODEL_LIST_TIMEOUT_MS = 2_000; // 2 seconds
@@ -94,14 +95,6 @@ export async function isModelSupported(
 }
 
 export function reportMissingAPIKeyForProvider(provider: string): void {
-  console.log({
-    provider,
-  });
-  if (!provider) {
-    const error = new Error("No provider provided");
-    console.error(error);
-    // throw error;
-  }
   // eslint-disable-next-line no-console
   console.error(
     (provider
