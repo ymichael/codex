@@ -1,15 +1,14 @@
 import type { TerminalRendererOptions } from "marked-terminal";
+import type { ResponseReasoningItem } from "openai/resources/responses/responses";
 import type {
-  ResponseFunctionToolCallItem,
-  ResponseFunctionToolCallOutputItem,
-  ResponseInputMessageItem,
-  ResponseItem,
-  ResponseOutputMessage,
-  ResponseReasoningItem,
-} from "openai/resources/responses/responses";
-
+  ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
+} from "openai/resources/chat/completions.mjs";
 import { useTerminalSize } from "../../hooks/use-terminal-size";
-import { parseToolCall, parseToolCallOutput } from "../../utils/parsers";
+import {
+  parseToolCallChatCompletion,
+  parseToolCallOutput,
+} from "../../utils/parsers";
 import chalk, { type ForegroundColorName } from "chalk";
 import { Box, Text } from "ink";
 import { parse, setOptions } from "marked";
@@ -20,30 +19,29 @@ export default function TerminalChatResponseItem({
   item,
   fullStdout = false,
 }: {
-  item: ResponseItem;
+  item: ChatCompletionMessageParam;
   fullStdout?: boolean;
 }): React.ReactElement {
-  switch (item.type) {
-    case "message":
+  switch (item.role) {
+    case "user":
       return <TerminalChatResponseMessage message={item} />;
-    case "function_call":
-      return <TerminalChatResponseToolCall message={item} />;
-    case "function_call_output":
+    case "assistant":
       return (
-        <TerminalChatResponseToolCallOutput
-          message={item}
-          fullStdout={fullStdout}
-        />
+        <>
+          <TerminalChatResponseMessage message={item} />
+          {item.tool_calls?.map((toolCall, i) => {
+            return <TerminalChatResponseToolCall key={i} message={toolCall} />;
+          })}
+        </>
+      );
+    case "tool":
+      return (
+        <TerminalChatResponseMessage message={item} fullStdout={fullStdout} />
       );
     default:
       break;
   }
-
-  // @ts-expect-error `reasoning` is not in the responses API yet
-  if (item.type === "reasoning") {
-    return <TerminalChatResponseReasoning message={item} />;
-  }
-
+  // Fallback for any other message type
   return <TerminalChatResponseGenericMessage message={item} />;
 }
 
@@ -115,32 +113,48 @@ const colorsByRole: Record<string, ForegroundColorName> = {
 
 function TerminalChatResponseMessage({
   message,
+  fullStdout,
 }: {
-  message: ResponseInputMessageItem | ResponseOutputMessage;
+  message: ChatCompletionMessageParam;
+  fullStdout?: boolean;
 }) {
+  const contentParts: string[] = [];
+  if (typeof message.content === "string") {
+    contentParts.push(message.content);
+  } else if (Array.isArray(message.content)) {
+    for (const part of message.content) {
+      if (part.type === "text") {
+        contentParts.push(part.text);
+      }
+      if (part.type === "refusal") {
+        contentParts.push(part.refusal);
+      }
+      if (part.type === "image_url") {
+        contentParts.push(`<Image />`);
+      }
+      if (part.type === "file") {
+        contentParts.push(`<File />`);
+      }
+    }
+  }
+  const content = contentParts.join("");
+  if (content.length === 0) {
+    return null;
+  }
+  if (message.role === "tool" && !("tool_calls" in message)) {
+    return (
+      <TerminalChatResponseToolCallOutput
+        content={content}
+        fullStdout={!!fullStdout}
+      />
+    );
+  }
   return (
     <Box flexDirection="column">
       <Text bold color={colorsByRole[message.role] || "gray"}>
         {message.role === "assistant" ? "codex" : message.role}
       </Text>
-      <Markdown>
-        {message.content
-          .map(
-            (c) =>
-              c.type === "output_text"
-                ? c.text
-                : c.type === "refusal"
-                ? c.refusal
-                : c.type === "input_text"
-                ? c.text
-                : c.type === "input_image"
-                ? "<Image>"
-                : c.type === "input_file"
-                ? c.filename
-                : "", // unknown content type
-          )
-          .join(" ")}
-      </Markdown>
+      <Markdown>{content}</Markdown>
     </Box>
   );
 }
@@ -148,9 +162,9 @@ function TerminalChatResponseMessage({
 function TerminalChatResponseToolCall({
   message,
 }: {
-  message: ResponseFunctionToolCallItem;
+  message: ChatCompletionMessageToolCall;
 }) {
-  const details = parseToolCall(message);
+  const details = parseToolCallChatCompletion(message);
   return (
     <Box flexDirection="column" gap={1}>
       <Text color="magentaBright" bold>
@@ -164,13 +178,13 @@ function TerminalChatResponseToolCall({
 }
 
 function TerminalChatResponseToolCallOutput({
-  message,
+  content,
   fullStdout,
 }: {
-  message: ResponseFunctionToolCallOutputItem;
+  content: string;
   fullStdout: boolean;
 }) {
-  const { output, metadata } = parseToolCallOutput(message.output);
+  const { output, metadata } = parseToolCallOutput(content);
   const { exit_code, duration_seconds } = metadata;
   const metadataInfo = useMemo(
     () =>
@@ -185,7 +199,7 @@ function TerminalChatResponseToolCallOutput({
     [exit_code, duration_seconds],
   );
   let displayedContent = output;
-  if (message.type === "function_call_output" && !fullStdout) {
+  if (!fullStdout) {
     const lines = displayedContent.split("\n");
     if (lines.length > 4) {
       const head = lines.slice(0, 4);
@@ -227,8 +241,9 @@ function TerminalChatResponseToolCallOutput({
 export function TerminalChatResponseGenericMessage({
   message,
 }: {
-  message: ResponseItem;
+  message: ChatCompletionMessageParam;
 }): React.ReactElement {
+  // For generic messages, we'll just stringify and show the content
   return <Text>{JSON.stringify(message, null, 2)}</Text>;
 }
 

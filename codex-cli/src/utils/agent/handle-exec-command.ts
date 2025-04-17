@@ -2,7 +2,7 @@ import type { CommandConfirmation } from "./agent-loop.js";
 import type { AppConfig } from "../config.js";
 import type { ExecInput } from "./sandbox/interface.js";
 import type { ApplyPatchCommand, ApprovalPolicy } from "../../approvals.js";
-import type { ResponseInputItem } from "openai/resources/responses/responses.mjs";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 
 import { exec, execApplyPatch } from "./exec.js";
 import { isLoggingEnabled, log } from "./log.js";
@@ -67,7 +67,7 @@ function deriveCommandKey(cmd: Array<string>): string {
 type HandleExecCommandResult = {
   outputText: string;
   metadata: Record<string, unknown>;
-  additionalItems?: Array<ResponseInputItem>;
+  additionalItems?: Array<ChatCompletionMessageParam>;
 };
 
 export async function handleExecCommand(
@@ -303,9 +303,8 @@ async function askUserPermission(
       metadata: {},
       additionalItems: [
         {
-          type: "message",
           role: "user",
-          content: [{ type: "input_text", text: note }],
+          content: [{ type: "text", text: note }],
         },
       ],
     };

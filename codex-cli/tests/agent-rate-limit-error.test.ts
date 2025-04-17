@@ -82,7 +82,7 @@ describe("AgentLoop – rate‑limit handling", () => {
         onItem: (i) => received.push(i),
         onLoading: () => {},
         getCommandConfirmation: async () => ({ review: "yes" } as any),
-        onLastResponseId: () => {},
+        onReset: () => {},
       });
 
       const userMsg = [

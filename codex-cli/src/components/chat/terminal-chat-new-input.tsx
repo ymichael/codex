@@ -1,10 +1,7 @@
 import type { MultilineTextEditorHandle } from "./multiline-editor";
 import type { ReviewDecision } from "../../utils/agent/review.js";
-import type {
-  ResponseInputItem,
-  ResponseItem,
-} from "openai/resources/responses/responses.mjs";
-
+import type { ResponseItem } from "openai/resources/responses/responses.mjs";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 import MultilineTextEditor from "./multiline-editor";
 import { TerminalChatCommandReview } from "./terminal-chat-command-review.js";
 import { log, isLoggingEnabled } from "../../utils/agent/log.js";
@@ -83,7 +80,7 @@ export default function TerminalChatInput({
 }: {
   isNew: boolean;
   loading: boolean;
-  submitInput: (input: Array<ResponseInputItem>) => void;
+  submitInput: (input: Array<ChatCompletionMessageParam>) => void;
   confirmationPrompt: React.ReactNode | null;
   submitConfirmation: (
     decision: ReviewDecision,
@@ -204,8 +201,7 @@ export default function TerminalChatInput({
           submitInput([
             {
               role: "user",
-              content: [{ type: "input_text", text: suggestion }],
-              type: "message",
+              content: [{ type: "text", text: suggestion }],
             },
           ]);
         }

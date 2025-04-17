@@ -2,14 +2,17 @@ import type { ReviewDecision } from "./review.js";
 import type { ApplyPatchCommand, ApprovalPolicy } from "../../approvals.js";
 import type { AppConfig } from "../config.js";
 import type {
-  ResponseFunctionToolCall,
-  ResponseInputItem,
-  ResponseItem,
-} from "openai/resources/responses/responses.mjs";
-import type { Reasoning } from "openai/resources.mjs";
+  ChatCompletionChunk,
+  ChatCompletionMessageParam,
+} from "openai/resources/chat/completions/completions.mjs";
+import type { ReasoningEffort } from "openai/resources.mjs";
 
 import { log, isLoggingEnabled } from "./log.js";
-import { OPENAI_BASE_URL, OPENAI_TIMEOUT_MS } from "../config.js";
+import {
+  OPENAI_API_KEY,
+  OPENAI_BASE_URL,
+  OPENAI_TIMEOUT_MS,
+} from "../config.js";
 import { parseToolCallArguments } from "../parsers.js";
 import {
   ORIGIN,
@@ -21,6 +24,7 @@ import {
 import { handleExecCommand } from "./handle-exec-command.js";
 import { randomUUID } from "node:crypto";
 import OpenAI, { APIConnectionTimeoutError } from "openai";
+import { Stream } from "openai/streaming.mjs";
 
 // Wait time before retrying after rate limit errors (ms).
 const RATE_LIMIT_RETRY_WAIT_MS = parseInt(
@@ -41,15 +45,15 @@ type AgentLoopParams = {
   config?: AppConfig;
   instructions?: string;
   approvalPolicy: ApprovalPolicy;
-  onItem: (item: ResponseItem) => void;
+  onItem: (item: ChatCompletionMessageParam) => void;
   onLoading: (loading: boolean) => void;
+  onReset: () => void;
 
   /** Called when the command is not auto-approved to request explicit user review. */
   getCommandConfirmation: (
     command: Array<string>,
     applyPatch: ApplyPatchCommand | undefined,
   ) => Promise<CommandConfirmation>;
-  onLastResponseId: (lastResponseId: string) => void;
 };
 
 export class AgentLoop {
@@ -65,20 +69,19 @@ export class AgentLoop {
   // instance shape without resorting to `any`.
   private oai: OpenAI;
 
-  private onItem: (item: ResponseItem) => void;
+  private onItem: (item: ChatCompletionMessageParam) => void;
   private onLoading: (loading: boolean) => void;
   private getCommandConfirmation: (
     command: Array<string>,
     applyPatch: ApplyPatchCommand | undefined,
   ) => Promise<CommandConfirmation>;
-  private onLastResponseId: (lastResponseId: string) => void;
 
   /**
    * A reference to the currently active stream returned from the OpenAI
    * client. We keep this so that we can abort the request if the user decides
    * to interrupt the current task (e.g. via the escape hot‑key).
    */
-  private currentStream: unknown | null = null;
+  private currentStream: Stream<ChatCompletionChunk> | null = null;
   /** Incremented with every call to `run()`. Allows us to ignore stray events
    * from streams that belong to a previous run which might still be emitting
    * after the user has canceled and issued a new command. */
@@ -99,6 +102,8 @@ export class AgentLoop {
   /** Master abort controller – fires when terminate() is invoked. */
   private readonly hardAbort = new AbortController();
 
+  private onReset: () => void;
+
   /**
    * Abort the ongoing request/stream, if any. This allows callers (typically
    * the UI layer) to interrupt the current agent step so the user can issue
@@ -117,10 +122,7 @@ export class AgentLoop {
         )} generation=${this.generation}`,
       );
     }
-    (
-      this.currentStream as { controller?: { abort?: () => void } } | null
-    )?.controller?.abort?.();
-
+    this.currentStream?.controller?.abort?.();
     this.canceled = true;
     this.execAbortController?.abort();
     if (isLoggingEnabled()) {
@@ -132,7 +134,7 @@ export class AgentLoop {
     // the stored lastResponseId so a subsequent run starts a clean turn.
     if (this.pendingAborts.size === 0) {
       try {
-        this.onLastResponseId("");
+        this.onReset();
       } catch {
         /* ignore */
       }
@@ -149,7 +151,7 @@ export class AgentLoop {
     // the stored lastResponseId so a subsequent run starts a clean turn.
     if (this.pendingAborts.size === 0) {
       try {
-        this.onLastResponseId("");
+        this.onReset();
       } catch {
         /* ignore */
       }
@@ -219,7 +221,7 @@ export class AgentLoop {
     onItem,
     onLoading,
     getCommandConfirmation,
-    onLastResponseId,
+    onReset,
   }: AgentLoopParams & { config?: AppConfig }) {
     this.model = model;
     this.instructions = instructions;
@@ -239,11 +241,11 @@ export class AgentLoop {
     this.onItem = onItem;
     this.onLoading = onLoading;
     this.getCommandConfirmation = getCommandConfirmation;
-    this.onLastResponseId = onLastResponseId;
+    this.onReset = onReset;
     this.sessionId = getSessionId() || randomUUID().replaceAll("-", "");
     // Configure OpenAI client with optional timeout (ms) from environment
     const timeoutMs = OPENAI_TIMEOUT_MS;
-    const apiKey = this.config.apiKey ?? process.env["OPENAI_API_KEY"] ?? "";
+    const apiKey = this.config.apiKey ?? OPENAI_API_KEY ?? "";
     this.oai = new OpenAI({
       // The OpenAI JS SDK only requires `apiKey` when making requests against
       // the official API.  When running unit‑tests we stub out all network
@@ -274,8 +276,8 @@ export class AgentLoop {
   }
 
   private async handleFunctionCall(
-    item: ResponseFunctionToolCall,
-  ): Promise<Array<ResponseInputItem>> {
+    item: ChatCompletionMessageParam,
+  ): Promise<Array<ChatCompletionMessageParam>> {
     // If the agent has been canceled in the meantime we should not perform any
     // additional work. Returning an empty array ensures that we neither execute
     // the requested tool call nor enqueue any follow‑up input items. This keeps
@@ -284,12 +286,16 @@ export class AgentLoop {
     if (this.canceled) {
       return [];
     }
+    // @ts-expect-error
+    if (item.tool_calls?.[0]) {
+      // @ts-expect-error
+      item = item.tool_calls?.[0];
+    }
     // ---------------------------------------------------------------------
     // Normalise the function‑call item into a consistent shape regardless of
     // whether it originated from the `/responses` or the `/chat/completions`
     // endpoint – their JSON differs slightly.
     // ---------------------------------------------------------------------
-
     const isChatStyle =
       // The chat endpoint nests function details under a `function` key.
       // We conservatively treat the presence of this field as a signal that
@@ -325,20 +331,28 @@ export class AgentLoop {
     }
 
     if (args == null) {
-      const outputItem: ResponseInputItem.FunctionCallOutput = {
-        type: "function_call_output",
-        call_id: item.call_id,
-        output: `invalid arguments: ${rawArguments}`,
+      const outputItem: ChatCompletionMessageParam = {
+        role: "tool",
+        tool_call_id: callId,
+        content: [
+          {
+            type: "text",
+            text: `invalid arguments: ${rawArguments}`,
+          },
+        ],
       };
       return [outputItem];
     }
 
-    const outputItem: ResponseInputItem.FunctionCallOutput = {
-      type: "function_call_output",
-      // `call_id` is mandatory – ensure we never send `undefined` which would
-      // trigger the "No tool output found…" 400 from the API.
-      call_id: callId,
-      output: "no function found",
+    const outputItem: ChatCompletionMessageParam = {
+      role: "tool",
+      tool_call_id: callId,
+      content: [
+        {
+          type: "text",
+          text: "no function found",
+        },
+      ],
     };
 
     // We intentionally *do not* remove this `callId` from the `pendingAborts`
@@ -353,7 +367,7 @@ export class AgentLoop {
     // below in the `flush()` helper).
 
     // used to tell model to stop if needed
-    const additionalItems: Array<ResponseInputItem> = [];
+    const additionalItems: Array<ChatCompletionMessageParam> = [];
 
     // TODO: allow arbitrary function calls (beyond shell/container.exec)
     if (name === "container.exec" || name === "shell") {
@@ -368,7 +382,12 @@ export class AgentLoop {
         this.getCommandConfirmation,
         this.execAbortController?.signal,
       );
-      outputItem.output = JSON.stringify({ output: outputText, metadata });
+      outputItem.content = [
+        {
+          type: "text",
+          text: JSON.stringify({ output: outputText, metadata }),
+        },
+      ];
 
       if (additionalItemsFromExec) {
         additionalItems.push(...additionalItemsFromExec);
@@ -379,8 +398,8 @@ export class AgentLoop {
   }
 
   public async run(
-    input: Array<ResponseInputItem>,
-    previousResponseId: string = "",
+    input: Array<ChatCompletionMessageParam>,
+    prevItems: Array<ChatCompletionMessageParam> = [],
   ): Promise<void> {
     // ---------------------------------------------------------------------
     // Top‑level error wrapper so that known transient network issues like
@@ -395,7 +414,7 @@ export class AgentLoop {
         throw new Error("AgentLoop has been terminated");
       }
       // Record when we start "thinking" so we can report accurate elapsed time.
-      const thinkingStart = Date.now();
+      // const thinkingStart = Date.now();
       // Bump generation so that any late events from previous runs can be
       // identified and dropped.
       const thisGeneration = ++this.generation;
@@ -417,23 +436,26 @@ export class AgentLoop {
       // accumulate listeners which in turn triggered Node's
       // `MaxListenersExceededWarning` after ten invocations.
 
-      let lastResponseId: string = previousResponseId;
-
       // If there are unresolved function calls from a previously cancelled run
       // we have to emit dummy tool outputs so that the API no longer expects
       // them.  We prepend them to the user‑supplied input so they appear
       // first in the conversation turn.
-      const abortOutputs: Array<ResponseInputItem> = [];
+      const abortOutputs: Array<ChatCompletionMessageParam> = [];
       if (this.pendingAborts.size > 0) {
         for (const id of this.pendingAborts) {
           abortOutputs.push({
-            type: "function_call_output",
-            call_id: id,
-            output: JSON.stringify({
-              output: "aborted",
-              metadata: { exit_code: 1, duration_seconds: 0 },
-            }),
-          } as ResponseInputItem.FunctionCallOutput);
+            role: "tool",
+            tool_call_id: id,
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  output: "aborted",
+                  metadata: { exit_code: 1, duration_seconds: 0 },
+                }),
+              },
+            ],
+          });
         }
         // Once converted the pending list can be cleared.
         this.pendingAborts.clear();
@@ -443,8 +465,8 @@ export class AgentLoop {
 
       this.onLoading(true);
 
-      const staged: Array<ResponseItem | undefined> = [];
-      const stageItem = (item: ResponseItem) => {
+      const staged: Array<ChatCompletionMessageParam | undefined> = [];
+      const stageItem = (item: ChatCompletionMessageParam) => {
         // Ignore any stray events that belong to older generations.
         if (thisGeneration !== this.generation) {
           return;
@@ -452,26 +474,26 @@ export class AgentLoop {
 
         // Store the item so the final flush can still operate on a complete list.
         // We'll nil out entries once they're delivered.
-        const idx = staged.push(item) - 1;
-
-        // Instead of emitting synchronously we schedule a short‑delay delivery.
-        // This accomplishes two things:
-        //   1. The UI still sees new messages almost immediately, creating the
-        //      perception of real‑time updates.
-        //   2. If the user calls `cancel()` in the small window right after the
-        //      item was staged we can still abort the delivery because the
-        //      generation counter will have been bumped by `cancel()`.
-        setTimeout(() => {
-          if (
-            thisGeneration === this.generation &&
-            !this.canceled &&
-            !this.hardAbort.signal.aborted
-          ) {
-            this.onItem(item);
-            // Mark as delivered so flush won't re-emit it
-            staged[idx] = undefined;
-          }
-        }, 10);
+        this.onItem(item);
+        staged.push(item);
+        // // Instead of emitting synchronously we schedule a short‑delay delivery.
+        // // This accomplishes two things:
+        // //   1. The UI still sees new messages almost immediately, creating the
+        // //      perception of real‑time updates.
+        // //   2. If the user calls `cancel()` in the small window right after the
+        // //      item was staged we can still abort the delivery because the
+        // //      generation counter will have been bumped by `cancel()`.
+        // setTimeout(() => {
+        //   if (
+        //     thisGeneration === this.generation &&
+        //     !this.canceled &&
+        //     !this.hardAbort.signal.aborted
+        //   ) {
+        //     this.onItem(item);
+        //     // Mark as delivered so flush won't re-emit it
+        //     staged[idx] = undefined;
+        //   }
+        // }, 10);
       };
 
       while (turnInput.length > 0) {
@@ -481,22 +503,26 @@ export class AgentLoop {
         }
         // send request to openAI
         for (const item of turnInput) {
-          stageItem(item as ResponseItem);
+          stageItem(item);
         }
-        // Send request to OpenAI with retry on timeout
-        let stream;
 
+        // Send request to OpenAI with retry on timeout
+        let stream: Stream<ChatCompletionChunk> | undefined = undefined;
         // Retry loop for transient errors. Up to MAX_RETRIES attempts.
         const MAX_RETRIES = 5;
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
           try {
-            let reasoning: Reasoning | undefined;
-            if (this.model.startsWith("o")) {
-              reasoning = { effort: "high" };
-              if (this.model === "o3" || this.model === "o4-mini") {
-                // @ts-expect-error waiting for API type update
-                reasoning.summary = "auto";
-              }
+            let reasoning: ReasoningEffort | undefined;
+            if (
+              this.model.startsWith("o") ||
+              this.model.startsWith("openai/o")
+            ) {
+              reasoning = "high";
+              // FIXME
+              // if (this.model === "o3" || this.model === "o4-mini") {
+              //   // @ts-expect-error waiting for API type update
+              //   reasoning.summary = "auto";
+              // }
             }
             const mergedInstructions = [prefix, this.instructions]
               .filter(Boolean)
@@ -507,36 +533,45 @@ export class AgentLoop {
               );
             }
             // eslint-disable-next-line no-await-in-loop
-            stream = await this.oai.responses.create({
+            stream = await this.oai.chat.completions.create({
               model: this.model,
-              instructions: mergedInstructions,
-              previous_response_id: lastResponseId || undefined,
-              input: turnInput,
               stream: true,
-              parallel_tool_calls: false,
-              reasoning,
+              messages: [
+                {
+                  role: "system",
+                  content: mergedInstructions,
+                },
+                ...prevItems,
+                ...(staged.filter(
+                  Boolean,
+                ) as Array<ChatCompletionMessageParam>),
+              ],
+              reasoning_effort: reasoning,
               tools: [
                 {
                   type: "function",
-                  name: "shell",
-                  description: "Runs a shell command, and returns its output.",
-                  strict: false,
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      command: { type: "array", items: { type: "string" } },
-                      workdir: {
-                        type: "string",
-                        description: "The working directory for the command.",
+                  function: {
+                    name: "shell",
+                    description:
+                      "Runs a shell command, and returns its output.",
+                    strict: false,
+                    parameters: {
+                      type: "object",
+                      properties: {
+                        command: { type: "array", items: { type: "string" } },
+                        workdir: {
+                          type: "string",
+                          description: "The working directory for the command.",
+                        },
+                        timeout: {
+                          type: "number",
+                          description:
+                            "The maximum time to wait for the command to complete in milliseconds.",
+                        },
                       },
-                      timeout: {
-                        type: "number",
-                        description:
-                          "The maximum time to wait for the command to complete in milliseconds.",
-                      },
+                      required: ["command"],
+                      additionalProperties: false,
                     },
-                    required: ["command"],
-                    additionalProperties: false,
                   },
                 },
               ],
@@ -578,12 +613,10 @@ export class AgentLoop {
 
             if (isTooManyTokensError) {
               this.onItem({
-                id: `error-${Date.now()}`,
-                type: "message",
-                role: "system",
+                role: "assistant",
                 content: [
                   {
-                    type: "input_text",
+                    type: "text",
                     text: "⚠️  The current request exceeds the maximum context length supported by the chosen model. Please shorten the conversation, run /clear, or switch to a model with a larger context window and try again.",
                   },
                 ],
@@ -633,12 +666,10 @@ export class AgentLoop {
                 ].join(", ");
 
                 this.onItem({
-                  id: `error-${Date.now()}`,
-                  type: "message",
-                  role: "system",
+                  role: "assistant",
                   content: [
                     {
-                      type: "input_text",
+                      type: "text",
                       text: `⚠️  Rate limit reached. Error details: ${errorDetails}. Please try again later.`,
                     },
                   ],
@@ -658,12 +689,10 @@ export class AgentLoop {
               errCtx.type === "invalid_request_error";
             if (isClientError) {
               this.onItem({
-                id: `error-${Date.now()}`,
-                type: "message",
-                role: "system",
+                role: "assistant",
                 content: [
                   {
-                    type: "input_text",
+                    type: "text",
                     // Surface the request ID when it is present on the error so users
                     // can reference it when contacting support or inspecting logs.
                     text: (() => {
@@ -687,7 +716,6 @@ export class AgentLoop {
                         `Type: ${errCtx.type || "unknown"}`,
                         `Message: ${errCtx.message || "unknown"}`,
                       ].join(", ");
-
                       return `⚠️  OpenAI rejected the request${
                         reqId ? ` (request ID: ${reqId})` : ""
                       }. Error details: ${errorDetails}. Please verify your settings and try again.`;
@@ -708,9 +736,7 @@ export class AgentLoop {
         if (this.canceled || this.hardAbort.signal.aborted) {
           // `stream` is defined; abort to avoid wasting tokens/server work
           try {
-            (
-              stream as { controller?: { abort?: () => void } }
-            )?.controller?.abort?.();
+            stream?.controller?.abort?.();
           } catch {
             /* ignore */
           }
@@ -719,7 +745,7 @@ export class AgentLoop {
         }
 
         // Keep track of the active stream so it can be aborted on demand.
-        this.currentStream = stream;
+        this.currentStream = stream!;
 
         // guard against an undefined stream before iterating
         if (!stream) {
@@ -729,53 +755,63 @@ export class AgentLoop {
         }
 
         try {
+          let message:
+            | Extract<ChatCompletionMessageParam, { role: "assistant" }>
+            | undefined;
           // eslint-disable-next-line no-await-in-loop
-          for await (const event of stream) {
+          for await (const chunk of stream) {
             if (isLoggingEnabled()) {
-              log(`AgentLoop.run(): response event ${event.type}`);
+              log(`AgentLoop.run(): completion chunk ${chunk.id}`);
             }
-
-            // process and surface each item (no‑op until we can depend on streaming events)
-            if (event.type === "response.output_item.done") {
-              const item = event.item;
-              // 1) if it's a reasoning item, annotate it
-              type ReasoningItem = { type?: string; duration_ms?: number };
-              const maybeReasoning = item as ReasoningItem;
-              if (maybeReasoning.type === "reasoning") {
-                maybeReasoning.duration_ms = Date.now() - thinkingStart;
+            const delta = chunk?.choices?.[0]?.delta;
+            const content = delta?.content;
+            const tool_call = delta?.tool_calls?.[0];
+            if (!message) {
+              message = delta as Extract<
+                ChatCompletionChunk,
+                { role: "assistant" }
+              >;
+            } else {
+              if (content) {
+                message.content = message.content ?? "";
+                message.content += content;
               }
-              if (item.type === "function_call") {
-                // Track outstanding tool call so we can abort later if needed.
-                // The item comes from the streaming response, therefore it has
-                // either `id` (chat) or `call_id` (responses) – we normalise
-                // by reading both.
-                const callId =
-                  (item as { call_id?: string; id?: string }).call_id ??
-                  (item as { id?: string }).id;
-                if (callId) {
-                  this.pendingAborts.add(callId);
-                }
+              if (message && !message.tool_calls && tool_call) {
+                // @ts-expect-error
+                message.tool_calls = [tool_call];
               } else {
-                stageItem(item as ResponseItem);
-              }
-            }
-
-            if (event.type === "response.completed") {
-              if (thisGeneration === this.generation && !this.canceled) {
-                for (const item of event.response.output) {
-                  stageItem(item as ResponseItem);
+                if (tool_call?.function?.name) {
+                  message.tool_calls![0]!.function.name +=
+                    tool_call.function.name;
+                }
+                if (tool_call?.function?.arguments) {
+                  message.tool_calls![0]!.function.arguments +=
+                    tool_call.function.arguments;
                 }
               }
-              if (event.response.status === "completed") {
-                // TODO: remove this once we can depend on streaming events
-                const newTurnInput = await this.processEventsWithoutStreaming(
-                  event.response.output,
-                  stageItem,
-                );
-                turnInput = newTurnInput;
+            }
+            if (tool_call?.id) {
+              // Track outstanding tool call so we can abort later if needed.
+              // The item comes from the streaming response, therefore it has
+              // either `id` (chat) or `call_id` (responses) – we normalise
+              // by reading both.
+              this.pendingAborts.add(tool_call.id);
+            }
+            const finish_reason = chunk?.choices?.[0]?.finish_reason;
+            if (finish_reason) {
+              if (thisGeneration === this.generation && !this.canceled) {
+                // Process completed tool calls
+                if (message?.tool_calls?.[0]) {
+                  stageItem(message);
+                  const results = await this.handleFunctionCall(message);
+                  if (results.length > 0) {
+                    // Add results to the next turn's input
+                    turnInput.push(...results);
+                  }
+                } else if (message && Object.keys(message).length > 0) {
+                  stageItem(message);
+                }
               }
-              lastResponseId = event.response.id;
-              this.onLastResponseId(event.response.id);
             }
           }
         } catch (err: unknown) {
@@ -796,7 +832,7 @@ export class AgentLoop {
 
         log(
           `Turn inputs (${turnInput.length}) - ${turnInput
-            .map((i) => i.type)
+            .map((i) => i.role)
             .join(", ")}`,
         );
       }
@@ -804,18 +840,20 @@ export class AgentLoop {
       // Flush staged items if the run concluded successfully (i.e. the user did
       // not invoke cancel() or terminate() during the turn).
       const flush = () => {
-        if (
-          !this.canceled &&
-          !this.hardAbort.signal.aborted &&
-          thisGeneration === this.generation
-        ) {
-          // Only emit items that weren't already delivered above
-          for (const item of staged) {
-            if (item) {
-              this.onItem(item);
-            }
-          }
-        }
+        // FIXME
+        // if (
+        //   !this.canceled &&
+        //   !this.hardAbort.signal.aborted &&
+        //   thisGeneration === this.generation
+        // ) {
+        //   // Only emit items that weren't already delivered above
+        //   for (const item of staged) {
+        //     if (item) {
+        //       console.log("flush", item);
+        //       this.onItem(item);
+        //     }
+        //   }
+        // }
 
         // At this point the turn finished without the user invoking
         // `cancel()`.  Any outstanding function‑calls must therefore have been
@@ -881,12 +919,10 @@ export class AgentLoop {
       if (isPrematureClose) {
         try {
           this.onItem({
-            id: `error-${Date.now()}`,
-            type: "message",
-            role: "system",
+            role: "assistant",
             content: [
               {
-                type: "input_text",
+                type: "text",
                 text: "⚠️  Connection closed prematurely while waiting for the model. Please try again.",
               },
             ],
@@ -973,12 +1009,10 @@ export class AgentLoop {
           const msgText =
             "⚠️  Network error while contacting OpenAI. Please check your connection and try again.";
           this.onItem({
-            id: `error-${Date.now()}`,
-            type: "message",
-            role: "system",
+            role: "assistant",
             content: [
               {
-                type: "input_text",
+                type: "text",
                 text: msgText,
               },
             ],
@@ -996,10 +1030,11 @@ export class AgentLoop {
   }
 
   // we need until we can depend on streaming events
+  // @ts-expect-error
   private async processEventsWithoutStreaming(
-    output: Array<ResponseInputItem>,
-    emitItem: (item: ResponseItem) => void,
-  ): Promise<Array<ResponseInputItem>> {
+    output: Array<ChatCompletionMessageParam>,
+    emitItem: (item: ChatCompletionMessageParam) => void,
+  ): Promise<Array<ChatCompletionMessageParam>> {
     // If the agent has been canceled we should short‑circuit immediately to
     // avoid any further processing (including potentially expensive tool
     // calls). Returning an empty array ensures the main run‑loop terminates
@@ -1007,18 +1042,18 @@ export class AgentLoop {
     if (this.canceled) {
       return [];
     }
-    const turnInput: Array<ResponseInputItem> = [];
+    const turnInput: Array<ChatCompletionMessageParam> = [];
     for (const item of output) {
-      if (item.type === "function_call") {
-        if (alreadyProcessedResponses.has(item.id)) {
+      if (item.role === "tool") {
+        if (alreadyProcessedResponses.has(item.tool_call_id)) {
           continue;
         }
-        alreadyProcessedResponses.add(item.id);
+        alreadyProcessedResponses.add(item.tool_call_id);
         // eslint-disable-next-line no-await-in-loop
         const result = await this.handleFunctionCall(item);
         turnInput.push(...result);
       }
-      emitItem(item as ResponseItem);
+      emitItem(item);
     }
     return turnInput;
   }

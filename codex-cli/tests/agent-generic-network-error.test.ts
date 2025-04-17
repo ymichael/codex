@@ -62,7 +62,7 @@ describe("AgentLoop – generic network/server errors", () => {
       onItem: (i) => received.push(i),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [
@@ -105,7 +105,7 @@ describe("AgentLoop – generic network/server errors", () => {
       onItem: (i) => received.push(i),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [

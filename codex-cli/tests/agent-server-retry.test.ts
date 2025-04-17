@@ -100,7 +100,7 @@ describe("AgentLoop – automatic retry on 5xx errors", () => {
       onItem: (i) => received.push(i),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [
@@ -137,7 +137,7 @@ describe("AgentLoop – automatic retry on 5xx errors", () => {
       onItem: (i) => received.push(i),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [

@@ -121,7 +121,7 @@ describe("function_call_output includes original call ID", () => {
       onItem: () => {},
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [

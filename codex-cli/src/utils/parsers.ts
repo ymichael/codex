@@ -3,7 +3,7 @@ import type {
   ExecOutputMetadata,
 } from "./agent/sandbox/interface.js";
 import type { ResponseFunctionToolCall } from "openai/resources/responses/responses.mjs";
-
+import type { ChatCompletionMessageToolCall } from "openai/resources/chat/completions.mjs";
 import { log } from "node:console";
 import { formatCommandForDisplay } from "src/format-command.js";
 
@@ -43,6 +43,24 @@ export type CommandReviewDetails = {
  * - an array of strings to use with `ExecInput` and `canAutoApprove()`
  * - a human-readable string to display to the user
  */
+export function parseToolCallChatCompletion(
+  toolCall: ChatCompletionMessageToolCall,
+): CommandReviewDetails | undefined {
+  if (toolCall.type !== "function") {
+    return undefined;
+  }
+  const toolCallArgs = parseToolCallArguments(toolCall.function.arguments);
+  if (toolCallArgs == null) {
+    return undefined;
+  }
+  const { cmd } = toolCallArgs;
+  const cmdReadableText = formatCommandForDisplay(cmd);
+  return {
+    cmd,
+    cmdReadableText,
+  };
+}
+
 export function parseToolCall(
   toolCall: ResponseFunctionToolCall,
 ): CommandReviewDetails | undefined {

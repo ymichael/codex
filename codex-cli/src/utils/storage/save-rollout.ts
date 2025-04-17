@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 
-import type { ResponseItem } from "openai/resources/responses/responses";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 
 import { loadConfig } from "../config";
 import fs from "fs/promises";
@@ -10,7 +10,7 @@ import path from "path";
 const SESSIONS_ROOT = path.join(os.homedir(), ".codex", "sessions");
 
 async function saveRolloutToHomeSessions(
-  items: Array<ResponseItem>,
+  items: Array<ChatCompletionMessageParam>,
 ): Promise<void> {
   await fs.mkdir(SESSIONS_ROOT, { recursive: true });
 
@@ -44,9 +44,9 @@ async function saveRolloutToHomeSessions(
 }
 
 let debounceTimer: NodeJS.Timeout | null = null;
-let pendingItems: Array<ResponseItem> | null = null;
+let pendingItems: Array<ChatCompletionMessageParam> | null = null;
 
-export function saveRollout(items: Array<ResponseItem>): void {
+export function saveRollout(items: Array<ChatCompletionMessageParam>): void {
   pendingItems = items;
   if (debounceTimer) {
     clearTimeout(debounceTimer);

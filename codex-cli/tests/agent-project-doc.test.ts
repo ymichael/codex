@@ -119,16 +119,15 @@ describe("AgentLoop", () => {
       onItem: () => {},
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     // Kick off a single run and wait for it to finish. The fake OpenAI client
     // will resolve immediately.
     await agent.run([
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "ping" }],
+        content: [{ type: "text", text: "ping" }],
       },
     ]);
 

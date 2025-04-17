@@ -1,4 +1,4 @@
-import type { ResponseItem } from "openai/resources/responses/responses.mjs";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 
 /**
  * Roughly estimate the number of language‑model tokens represented by a list
@@ -13,37 +13,30 @@ import type { ResponseItem } from "openai/resources/responses/responses.mjs";
  * encounter and then converts that char count to tokens by dividing by four
  * and rounding up.
  */
-export function approximateTokensUsed(items: Array<ResponseItem>): number {
+export function approximateTokensUsed(
+  items: Array<ChatCompletionMessageParam>,
+): number {
   let charCount = 0;
 
   for (const item of items) {
-    switch (item.type) {
-      case "message": {
-        for (const c of item.content) {
-          if (c.type === "input_text" || c.type === "output_text") {
-            charCount += c.text.length;
-          } else if (c.type === "refusal") {
-            charCount += c.refusal.length;
-          } else if (c.type === "input_file") {
-            charCount += c.filename?.length ?? 0;
-          }
-          // images and other content types are ignored (0 chars)
+    if (typeof item.content === "string") {
+      charCount += item.content.length;
+    }
+    if (Array.isArray(item.content)) {
+      for (const part of item.content) {
+        if (part.type === "text") {
+          charCount += part.text.length;
         }
-        break;
+        if (part.type === "refusal") {
+          charCount += part.refusal.length;
+        }
       }
-
-      case "function_call": {
-        charCount += (item.name?.length || 0) + (item.arguments?.length || 0);
-        break;
+    }
+    if ("tool_calls" in item && item.tool_calls) {
+      for (const toolCall of item.tool_calls) {
+        charCount += toolCall.function.name.length;
+        charCount += toolCall.function.arguments.length;
       }
-
-      case "function_call_output": {
-        charCount += item.output.length;
-        break;
-      }
-
-      default:
-        break;
     }
   }
 

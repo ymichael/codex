@@ -96,7 +96,7 @@ describe("Agent cancellation", () => {
       },
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [
@@ -143,7 +143,7 @@ describe("Agent cancellation", () => {
       onItem: (item) => received.push(item),
       onLoading: () => {},
       getCommandConfirmation: async () => ({ review: "yes" } as any),
-      onLastResponseId: () => {},
+      onReset: () => {},
     });
 
     const userMsg = [

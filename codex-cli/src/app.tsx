@@ -1,6 +1,5 @@
 import type { ApprovalPolicy } from "./approvals";
 import type { AppConfig } from "./utils/config";
-import type { ResponseItem } from "openai/resources/responses/responses";
 
 import TerminalChat from "./components/chat/terminal-chat";
 import TerminalChatPastRollout from "./components/chat/terminal-chat-past-rollout";
@@ -10,10 +9,11 @@ import { onExit } from "./utils/terminal";
 import { ConfirmInput } from "@inkjs/ui";
 import { Box, Text, useApp, useStdin } from "ink";
 import React, { useMemo, useState } from "react";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 
 export type AppRollout = {
   session: TerminalChatSession;
-  items: Array<ResponseItem>;
+  items: Array<ChatCompletionMessageParam>;
 };
 
 type Props = {
