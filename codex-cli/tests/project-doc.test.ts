@@ -1,4 +1,7 @@
-import { loadConfig, PROJECT_DOC_MAX_BYTES } from "../src/utils/config.js";
+import {
+  loadInstructions,
+  PROJECT_DOC_MAX_BYTES,
+} from "../src/utils/config.js";
 import { mkdirSync, rmSync, writeFileSync, mkdtempSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -27,19 +30,21 @@ describe("project doc integration", () => {
     const docContent = "# Project\nThis is my project.";
     writeFileSync(join(projectDir, "codex.md"), docContent);
 
-    const cfg = loadConfig(configPath, instructionsPath, { cwd: projectDir });
-    expect(cfg.instructions).toContain(docContent);
+    const instructions = loadInstructions(instructionsPath, {
+      cwd: projectDir,
+    });
+    expect(instructions).toContain(docContent);
   });
 
   test("opt-out via flag prevents inclusion", () => {
     const docContent = "will be ignored";
     writeFileSync(join(projectDir, "codex.md"), docContent);
 
-    const cfg = loadConfig(configPath, instructionsPath, {
+    const instructions = loadInstructions(instructionsPath, {
       cwd: projectDir,
       disableProjectDoc: true,
     });
-    expect(cfg.instructions).not.toContain(docContent);
+    expect(instructions).not.toContain(docContent);
   });
 
   test("file larger than limit gets truncated and warns", () => {
@@ -47,9 +52,11 @@ describe("project doc integration", () => {
     writeFileSync(join(projectDir, "codex.md"), big);
 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const cfg = loadConfig(configPath, instructionsPath, { cwd: projectDir });
+    const instructions = loadInstructions(instructionsPath, {
+      cwd: projectDir,
+    });
 
-    expect(cfg.instructions.length).toBe(PROJECT_DOC_MAX_BYTES);
+    expect(instructions.length).toBe(PROJECT_DOC_MAX_BYTES);
     expect(warnSpy).toHaveBeenCalledOnce();
 
     warnSpy.mockRestore();

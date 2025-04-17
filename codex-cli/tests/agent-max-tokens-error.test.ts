@@ -8,8 +8,10 @@ const openAiState: { createSpy?: ReturnType<typeof vi.fn> } = {};
 
 vi.mock("openai", () => {
   class FakeOpenAI {
-    public responses = {
-      create: (...args: Array<any>) => openAiState.createSpy!(...args),
+    public chat = {
+      completions: {
+        create: (...args: Array<any>) => openAiState.createSpy!(...args),
+      },
     };
   }
 
@@ -69,9 +71,8 @@ describe("AgentLoop – max_tokens too large error", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "hello" }],
+        content: [{ type: "text", text: "hello" }],
       },
     ];
 
@@ -82,7 +83,7 @@ describe("AgentLoop – max_tokens too large error", () => {
 
     const sysMsg = received.find(
       (i) =>
-        i.role === "system" &&
+        i.role === "assistant" &&
         typeof i.content?.[0]?.text === "string" &&
         i.content[0].text.includes("exceeds the maximum context length"),
     );

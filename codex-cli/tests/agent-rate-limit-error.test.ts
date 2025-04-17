@@ -15,9 +15,10 @@ const openAiState: { createSpy?: ReturnType<typeof vi.fn> } = {};
  */
 vi.mock("openai", () => {
   class FakeOpenAI {
-    public responses = {
-      // Will be replaced per‑test via `openAiState.createSpy`.
-      create: (...args: Array<any>) => openAiState.createSpy!(...args),
+    public chat = {
+      completions: {
+        create: (...args: Array<any>) => openAiState.createSpy!(...args),
+      },
     };
   }
 
@@ -87,9 +88,8 @@ describe("AgentLoop – rate‑limit handling", () => {
 
       const userMsg = [
         {
-          type: "message",
           role: "user",
-          content: [{ type: "input_text", text: "hello" }],
+          content: [{ type: "text", text: "hello" }],
         },
       ];
 
@@ -115,7 +115,7 @@ describe("AgentLoop – rate‑limit handling", () => {
       // Finally, verify that the user sees a helpful system message.
       const sysMsg = received.find(
         (i) =>
-          i.role === "system" &&
+          i.role === "assistant" &&
           typeof i.content?.[0]?.text === "string" &&
           i.content[0].text.includes("Rate limit reached"),
       );

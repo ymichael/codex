@@ -7,30 +7,32 @@ class StreamWithFunctionCall {
   async *[Symbol.asyncIterator]() {
     // First, deliver the function call.
     yield {
-      type: "response.output_item.done",
-      item: {
-        type: "function_call",
-        id: "call123",
-        name: "shell",
-        arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
-      },
+      choices: [
+        {
+          delta: {
+            role: "assistant",
+            tool_calls: [
+              {
+                id: "call_test_123",
+                function: {
+                  name: "shell",
+                  arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
+                },
+              },
+            ],
+          },
+        },
+      ],
     } as any;
 
     // Then conclude the turn.
     yield {
-      type: "response.completed",
-      response: {
-        id: "resp_func_call", // lastResponseId that would normally be stored
-        status: "completed",
-        output: [
-          {
-            type: "function_call",
-            id: "call123",
-            name: "shell",
-            arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
-          },
-        ],
-      },
+      choices: [
+        {
+          delta: {},
+          finish_reason: "tool_calls",
+        },
+      ],
     } as any;
   }
 }
@@ -39,21 +41,23 @@ vi.mock("openai", () => {
   const invocationBodies: Array<any> = [];
   let callNum = 0;
   class FakeOpenAI {
-    public responses = {
-      create: async (body: any) => {
-        invocationBodies.push(body);
-        callNum += 1;
-        // First call streams a function_call, second call returns empty stream.
-        if (callNum === 1) {
-          return new StreamWithFunctionCall();
-        }
-        // Subsequent calls: empty stream.
-        return new (class {
-          public controller = { abort: vi.fn() };
-          async *[Symbol.asyncIterator]() {
-            /* no events */
+    public chat = {
+      completions: {
+        create: async (body: any) => {
+          invocationBodies.push(body);
+          callNum += 1;
+          // First call streams a function_call, second call returns empty stream.
+          if (callNum === 1) {
+            return new StreamWithFunctionCall();
           }
-        })();
+          // Subsequent calls: empty stream.
+          return new (class {
+            public controller = { abort: vi.fn() };
+            async *[Symbol.asyncIterator]() {
+              /* no events */
+            }
+          })();
+        },
       },
     };
   }
@@ -110,9 +114,8 @@ describe("cancel clears previous_response_id", () => {
     // turn completes so the tool result is never returned.
     agent.run([
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "do something" }],
+        content: [{ type: "text", text: "do something" }],
       },
     ] as any);
     // Give it a moment to receive the function_call.
@@ -124,24 +127,20 @@ describe("cancel clears previous_response_id", () => {
     // Second user input.
     await agent.run([
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "new command" }],
+        content: [{ type: "text", text: "new command" }],
       },
     ] as any);
 
     const bodies = _test.getBodies();
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify(bodies, null, 2));
     expect(bodies.length).toBeGreaterThanOrEqual(2);
 
     // The *last* invocation belongs to the second run (after cancellation).
     const found = bodies.some(
       (b: any) =>
-        Array.isArray(b.input) &&
-        b.input.some(
-          (i: any) =>
-            i.type === "function_call_output" && i.call_id === "call123",
+        Array.isArray(b.messages) &&
+        b.messages.some(
+          (i: any) => i.role === "tool" && i.tool_call_id === "call_test_123",
         ),
     );
 

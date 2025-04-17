@@ -35,21 +35,24 @@ class FakeStream {
       // Wait the configured delay – fake timers will fast‑forward.
       await new Promise((r) => setTimeout(r, this.delay));
     }
-
     yield {
-      type: "response.completed",
-      response: {
-        id: `resp-${Date.now()}`,
-        status: "completed",
-        output: [
-          {
-            type: "message",
+      choices: [
+        {
+          delta: {
             role: "assistant",
-            id: "m1",
             content: [{ type: "text", text: "done" }],
           },
-        ],
-      },
+        },
+      ],
+    } as any;
+
+    yield {
+      choices: [
+        {
+          delta: {},
+          finish_reason: "stop",
+        },
+      ],
     } as any;
   }
 }
@@ -62,10 +65,12 @@ class FakeStream {
 vi.mock("openai", () => {
   let callCount = 0;
   class FakeOpenAI {
-    public responses = {
-      create: async () => {
-        callCount += 1;
-        return new FakeStream(callCount === 1 ? 10_000 : 500); // 10s vs 0.5s
+    public chat = {
+      completions: {
+        create: async () => {
+          callCount += 1;
+          return new FakeStream(callCount === 1 ? 10_000 : 500); // 10s vs 0.5s
+        },
       },
     };
   }

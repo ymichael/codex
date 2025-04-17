@@ -8,29 +8,31 @@ class SlowFunctionCallStream {
   async *[Symbol.asyncIterator]() {
     await new Promise((r) => setTimeout(r, 30));
     yield {
-      type: "response.output_item.done",
-      item: {
-        type: "function_call",
-        id: "slow_call",
-        name: "shell",
-        arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
-      },
+      choices: [
+        {
+          delta: {
+            role: "assistant",
+            tool_calls: [
+              {
+                id: "slow_call",
+                function: {
+                  name: "shell",
+                  arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
+                },
+              },
+            ],
+          },
+        },
+      ],
     } as any;
 
     yield {
-      type: "response.completed",
-      response: {
-        id: "resp_slow",
-        status: "completed",
-        output: [
-          {
-            type: "function_call",
-            id: "slow_call",
-            name: "shell",
-            arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
-          },
-        ],
-      },
+      choices: [
+        {
+          delta: {},
+          finish_reason: "tool_calls",
+        },
+      ],
     } as any;
   }
 }
@@ -39,17 +41,19 @@ vi.mock("openai", () => {
   const bodies: Array<any> = [];
   let callCount = 0;
   class FakeOpenAI {
-    public responses = {
-      create: async (body: any) => {
-        bodies.push(body);
-        callCount += 1;
-        if (callCount === 1) {
-          return new SlowFunctionCallStream();
-        }
-        return new (class {
-          public controller = { abort: vi.fn() };
-          async *[Symbol.asyncIterator]() {}
-        })();
+    public chat = {
+      completions: {
+        create: async (body: any) => {
+          bodies.push(body);
+          callCount += 1;
+          if (callCount === 1) {
+            return new SlowFunctionCallStream();
+          }
+          return new (class {
+            public controller = { abort: vi.fn() };
+            async *[Symbol.asyncIterator]() {}
+          })();
+        },
       },
     };
   }
@@ -101,9 +105,8 @@ describe("cancel before first function_call", () => {
     // Start first run.
     agent.run([
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "do" }],
+        content: [{ type: "text", text: "do" }],
       },
     ] as any);
 
@@ -114,9 +117,8 @@ describe("cancel before first function_call", () => {
     // Second run.
     await agent.run([
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "new" }],
+        content: [{ type: "text", text: "new" }],
       },
     ] as any);
 

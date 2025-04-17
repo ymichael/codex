@@ -8,39 +8,43 @@ class FakeStream {
   async *[Symbol.asyncIterator]() {
     // Immediately ask for a shell function call so we can test that the
     // subsequent function_call_output never gets surfaced after terminate().
+
     yield {
-      type: "response.output_item.done",
-      item: {
-        type: "function_call",
-        id: "call‑terminate‑1",
-        name: "shell",
-        arguments: JSON.stringify({ cmd: ["sleep", "5"] }),
-      },
+      choices: [
+        {
+          delta: {
+            role: "assistant",
+            tool_calls: [
+              {
+                id: "call‑terminate‑1",
+                function: {
+                  name: "shell",
+                  arguments: JSON.stringify({ cmd: ["sleep", "5"] }),
+                },
+              },
+            ],
+          },
+        },
+      ],
     } as any;
 
-    // Turn completion echoing the same function call.
     yield {
-      type: "response.completed",
-      response: {
-        id: "resp‑terminate‑1",
-        status: "completed",
-        output: [
-          {
-            type: "function_call",
-            id: "call‑terminate‑1",
-            name: "shell",
-            arguments: JSON.stringify({ cmd: ["sleep", "5"] }),
-          },
-        ],
-      },
+      choices: [
+        {
+          delta: {},
+          finish_reason: "tool_calls",
+        },
+      ],
     } as any;
   }
 }
 
 vi.mock("openai", () => {
   class FakeOpenAI {
-    public responses = {
-      create: async () => new FakeStream(),
+    public chat = {
+      completions: {
+        create: async () => new FakeStream(),
+      },
     };
   }
   class APIConnectionTimeoutError extends Error {}
@@ -114,9 +118,8 @@ describe("Agent terminate (hard cancel)", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "run long cmd" }],
+        content: [{ type: "text", text: "run long cmd" }],
       },
     ];
 
@@ -131,7 +134,7 @@ describe("Agent terminate (hard cancel)", () => {
     // Allow promises to settle.
     await new Promise((r) => setTimeout(r, 50));
 
-    const hasOutput = received.some((i) => i.type === "function_call_output");
+    const hasOutput = received.some((i) => i.role === "tool");
     expect(hasOutput).toBe(false);
   });
 
@@ -151,9 +154,8 @@ describe("Agent terminate (hard cancel)", () => {
 
     const dummyMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "noop" }],
+        content: [{ type: "text", text: "noop" }],
       },
     ];
 

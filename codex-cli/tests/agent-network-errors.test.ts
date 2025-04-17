@@ -28,9 +28,10 @@ vi.mock("openai", () => {
   class APIConnectionTimeoutError extends Error {}
 
   class FakeOpenAI {
-    public responses = {
-      // `createSpy` will be swapped out per test.
-      create: (...args: Array<any>) => openAiState.createSpy!(...args),
+    public chat = {
+      completions: {
+        create: (...args: Array<any>) => openAiState.createSpy!(...args),
+      },
     };
   }
 
@@ -77,28 +78,21 @@ describe("AgentLoop – network resilience", () => {
       // Second attempt – minimal assistant reply.
       return createStream([
         {
-          type: "response.output_item.done",
-          item: {
-            type: "message",
-            role: "assistant",
-            id: "m1",
-            content: [{ type: "text", text: "ok" }],
-          },
-        },
-        {
-          type: "response.completed",
-          response: {
-            id: "r1",
-            status: "completed",
-            output: [
-              {
-                type: "message",
+          choices: [
+            {
+              delta: {
                 role: "assistant",
-                id: "m1",
                 content: [{ type: "text", text: "ok" }],
               },
-            ],
-          },
+            },
+          ],
+        },
+        {
+          choices: [
+            {
+              finish_reason: "stop",
+            },
+          ],
         },
       ]);
     });
@@ -117,9 +111,8 @@ describe("AgentLoop – network resilience", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "hi" }],
+        content: [{ type: "text", text: "hi" }],
       },
     ];
 
@@ -158,9 +151,8 @@ describe("AgentLoop – network resilience", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "hi" }],
+        content: [{ type: "text", text: "hi" }],
       },
     ];
 
@@ -171,7 +163,7 @@ describe("AgentLoop – network resilience", () => {
 
     const sysMsg = received.find(
       (i) =>
-        i.role === "system" &&
+        i.role === "assistant" &&
         i.content?.[0]?.text?.includes("Connection closed prematurely"),
     );
     expect(sysMsg).toBeTruthy();

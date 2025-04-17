@@ -14,34 +14,31 @@ class FakeStream {
 
   async *[Symbol.asyncIterator]() {
     yield {
-      type: "response.output_item.done",
-      item: {
-        // Chat endpoint style (id + nested function descriptor)
-        type: "function_call",
-        id: "call_test_123",
-        function: {
-          name: "shell",
-          arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
+      choices: [
+        {
+          delta: {
+            role: "assistant",
+            tool_calls: [
+              {
+                id: "call_test_123",
+                function: {
+                  name: "shell",
+                  arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
+                },
+              },
+            ],
+          },
         },
-      },
+      ],
     } as any;
 
     yield {
-      type: "response.completed",
-      response: {
-        id: "resp1",
-        status: "completed",
-        output: [
-          {
-            type: "function_call",
-            id: "call_test_123",
-            function: {
-              name: "shell",
-              arguments: JSON.stringify({ cmd: ["echo", "hi"] }),
-            },
-          },
-        ],
-      },
+      choices: [
+        {
+          delta: {},
+          finish_reason: "tool_calls",
+        },
+      ],
     } as any;
   }
 }
@@ -53,23 +50,24 @@ vi.mock("openai", () => {
   let capturedSecondBody: any;
 
   class FakeOpenAI {
-    public responses = {
-      create: async (body: any) => {
-        invocation += 1;
-        if (invocation === 1) {
-          return new FakeStream();
-        }
-        if (invocation === 2) {
-          capturedSecondBody = body;
-          // empty stream
-          return new (class {
-            public controller = { abort: vi.fn() };
-            async *[Symbol.asyncIterator]() {
-              /* no items */
-            }
-          })();
-        }
-        throw new Error("Unexpected additional invocation in test");
+    public chat = {
+      completions: {
+        create: async (body: any) => {
+          invocation += 1;
+          if (invocation === 1) {
+            return new FakeStream();
+          }
+          if (invocation === 2) {
+            capturedSecondBody = body;
+            return new (class {
+              public controller = { abort: vi.fn() };
+              async *[Symbol.asyncIterator]() {
+                /* no items */
+              }
+            })();
+          }
+          throw new Error("Unexpected additional invocation in test");
+        },
       },
     };
   }
@@ -126,9 +124,8 @@ describe("function_call_output includes original call ID", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "run" }],
+        content: [{ type: "text", text: "run" }],
       },
     ];
 
@@ -139,11 +136,8 @@ describe("function_call_output includes original call ID", () => {
 
     const body = _test.getCapturedSecondBody();
     expect(body).toBeTruthy();
-
-    const outputItem = body.input?.find(
-      (i: any) => i.type === "function_call_output",
-    );
+    const outputItem = body.messages?.find((i: any) => i.role === "tool");
     expect(outputItem).toBeTruthy();
-    expect(outputItem.call_id).toBe("call_test_123");
+    expect(outputItem.tool_call_id).toBe("call_test_123");
   });
 });

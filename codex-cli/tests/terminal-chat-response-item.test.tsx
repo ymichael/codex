@@ -11,11 +11,10 @@ import { describe, it, expect } from "vitest";
 
 function userMessage(text: string) {
   return {
-    type: "message",
     role: "user",
     content: [
       {
-        type: "input_text",
+        type: "text",
         text,
       },
     ],
@@ -24,11 +23,10 @@ function userMessage(text: string) {
 
 function assistantMessage(text: string) {
   return {
-    type: "message",
     role: "assistant",
     content: [
       {
-        type: "output_text",
+        type: "text",
         text,
       },
     ],

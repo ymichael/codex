@@ -1,6 +1,6 @@
 import type * as fsType from "fs";
 
-import { loadConfig, saveConfig } from "../src/utils/config.js"; // parent import first
+import { loadConfig, saveConfig, setApiKey } from "../src/utils/config.js"; // parent import first
 import { tmpdir } from "os";
 import { join } from "path";
 import { test, expect, beforeEach, afterEach, vi } from "vitest";
@@ -57,10 +57,14 @@ afterEach(() => {
 test("loads default config if files don't exist", () => {
   const config = loadConfig(testConfigPath, testInstructionsPath, {
     disableProjectDoc: true,
+    forceApiKeyForTest: "test-api-key",
   });
   expect(config).toEqual({
     model: "o4-mini",
+    baseURL: "https://api.openai.com/v1",
     instructions: "",
+    provider: "openai",
+    apiKey: "test-api-key",
   });
 });
 
@@ -68,6 +72,9 @@ test("saves and loads config correctly", () => {
   const testConfig = {
     model: "test-model",
     instructions: "test instructions",
+    apiKey: "test-api-key",
+    provider: "openai",
+    baseURL: "https://api.openai.com/v1",
   };
   saveConfig(testConfig, testConfigPath, testInstructionsPath);
 
@@ -77,6 +84,7 @@ test("saves and loads config correctly", () => {
 
   const loadedConfig = loadConfig(testConfigPath, testInstructionsPath, {
     disableProjectDoc: true,
+    forceApiKeyForTest: "test-api-key",
   });
   expect(loadedConfig).toEqual(testConfig);
 });
@@ -96,6 +104,7 @@ test("loads user instructions + project doc when codex.md is present", () => {
   // 2) loadConfig without disabling project‑doc, but with cwd=testDir
   const cfg = loadConfig(testConfigPath, testInstructionsPath, {
     cwd: testDir,
+    forceApiKeyForTest: "test-api-key",
   });
 
   // 3) assert we got both pieces concatenated

@@ -32,7 +32,7 @@ export const INSTRUCTIONS_FILEPATH = join(CONFIG_DIR, "instructions.md");
 export const OPENAI_TIMEOUT_MS =
   parseInt(process.env["OPENAI_TIMEOUT_MS"] || "0", 10) || undefined;
 
-export let DEFAULT_PROVIDER = "";
+export let DEFAULT_PROVIDER = "openai";
 export let API_KEY = "";
 
 // Gracefully fallback to a provider if we have a missing API key.
@@ -253,6 +253,8 @@ export type LoadConfigOptions = {
   isFullContext?: boolean;
   /** The provider to use. */
   provider?: string;
+  /** Force the API key for testing purposes. */
+  forceApiKeyForTest?: string;
 };
 
 export const loadInstructions = (
@@ -376,13 +378,14 @@ export const loadConfig = (
     : defaultModelsForProvider(providerOrDefault);
 
   const derivedModel =
-    storedModel ??
+    storedModel ||
     (options.isFullContext
       ? derivedModels?.fullContext
       : derivedModels?.agentic);
 
   const derivedProvider = storedProvider ?? providerOrDefault;
-  const apiKeyForProvider = getAPIKeyForProviderOrExit(derivedProvider);
+  const apiKeyForProvider =
+    options.forceApiKeyForTest ?? getAPIKeyForProviderOrExit(derivedProvider);
 
   const config: AppConfig = {
     model: derivedModel,

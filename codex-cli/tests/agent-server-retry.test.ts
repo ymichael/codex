@@ -18,8 +18,10 @@ const openAiState: { createSpy?: ReturnType<typeof vi.fn> } = {};
 
 vi.mock("openai", () => {
   class FakeOpenAI {
-    public responses = {
-      create: (...args: Array<any>) => openAiState.createSpy!(...args),
+    public chat = {
+      completions: {
+        create: (...args: Array<any>) => openAiState.createSpy!(...args),
+      },
     };
   }
 
@@ -65,28 +67,22 @@ describe("AgentLoop – automatic retry on 5xx errors", () => {
       }
       return createStream([
         {
-          type: "response.output_item.done",
-          item: {
-            type: "message",
-            role: "assistant",
-            id: "m1",
-            content: [{ type: "text", text: "ok" }],
-          },
-        },
-        {
-          type: "response.completed",
-          response: {
-            id: "r1",
-            status: "completed",
-            output: [
-              {
-                type: "message",
+          choices: [
+            {
+              delta: {
                 role: "assistant",
-                id: "m1",
                 content: [{ type: "text", text: "ok" }],
               },
-            ],
-          },
+            },
+          ],
+        },
+        {
+          choices: [
+            {
+              delta: {},
+              finish_reason: "stop",
+            },
+          ],
         },
       ]);
     });
@@ -105,9 +101,8 @@ describe("AgentLoop – automatic retry on 5xx errors", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "hi" }],
+        content: [{ type: "text", text: "hi" }],
       },
     ];
 
@@ -142,9 +137,8 @@ describe("AgentLoop – automatic retry on 5xx errors", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "hello" }],
+        content: [{ type: "text", text: "hello" }],
       },
     ];
 
@@ -156,7 +150,7 @@ describe("AgentLoop – automatic retry on 5xx errors", () => {
 
     const sysMsg = received.find(
       (i) =>
-        i.role === "system" &&
+        i.role === "assistant" &&
         typeof i.content?.[0]?.text === "string" &&
         i.content[0].text.includes("Network error"),
     );

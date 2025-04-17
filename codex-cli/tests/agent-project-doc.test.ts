@@ -31,10 +31,12 @@ let lastCreateParams: any = null;
 
 vi.mock("openai", () => {
   class FakeOpenAI {
-    public responses = {
-      create: async (params: any) => {
-        lastCreateParams = params;
-        return new FakeStream();
+    public chat = {
+      completions: {
+        create: (params: any) => {
+          lastCreateParams = params;
+          return new FakeStream();
+        },
       },
     };
   }
@@ -104,7 +106,10 @@ afterEach(() => {
 
 describe("AgentLoop", () => {
   it("passes codex.md contents through the instructions parameter", async () => {
-    const config = loadConfig(undefined, undefined, { cwd: projectDir });
+    const config = loadConfig(undefined, undefined, {
+      cwd: projectDir,
+      forceApiKeyForTest: "test-api-key",
+    });
 
     // Sanity‑check that loadConfig picked up the project doc. This is *not* the
     // main assertion – we just avoid a false‑positive if the fixture setup is
@@ -135,6 +140,9 @@ describe("AgentLoop", () => {
     // that point still include the project doc. This validates the full path:
     // loadConfig → AgentLoop → addInstructionPrefix → OpenAI SDK.
     expect(lastCreateParams).not.toBeNull();
-    expect(lastCreateParams.instructions).toContain("Hello docs!");
+    const system = lastCreateParams.messages.find(
+      (m: any) => m.role === "system",
+    );
+    expect(system.content).toContain("Hello docs!");
   });
 });

@@ -8,8 +8,10 @@ const openAiState: { createSpy?: ReturnType<typeof vi.fn> } = {};
 
 vi.mock("openai", () => {
   class FakeOpenAI {
-    public responses = {
-      create: (...args: Array<any>) => openAiState.createSpy!(...args),
+    public chat = {
+      completions: {
+        create: (...args: Array<any>) => openAiState.createSpy!(...args),
+      },
     };
   }
 
@@ -67,9 +69,8 @@ describe("AgentLoop – generic network/server errors", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "ping" }],
+        content: [{ type: "text", text: "ping" }],
       },
     ];
 
@@ -80,7 +81,7 @@ describe("AgentLoop – generic network/server errors", () => {
 
     const sysMsg = received.find(
       (i) =>
-        i.role === "system" &&
+        i.role === "assistant" &&
         typeof i.content?.[0]?.text === "string" &&
         i.content[0].text.includes("Network error"),
     );
@@ -110,9 +111,8 @@ describe("AgentLoop – generic network/server errors", () => {
 
     const userMsg = [
       {
-        type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "ping" }],
+        content: [{ type: "text", text: "ping" }],
       },
     ];
 
@@ -122,7 +122,7 @@ describe("AgentLoop – generic network/server errors", () => {
 
     const sysMsg = received.find(
       (i) =>
-        i.role === "system" &&
+        i.role === "assistant" &&
         typeof i.content?.[0]?.text === "string" &&
         i.content[0].text.includes("error"),
     );
