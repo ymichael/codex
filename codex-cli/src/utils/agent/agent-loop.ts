@@ -145,23 +145,6 @@ export class AgentLoop {
     // expects a corresponding `function_call_output` that must reference that
     // very same response ID.  We therefore keep the ID around so the
     // follow‑up request can still satisfy the contract.
-
-    // If we have *not* seen any function_call IDs yet there is nothing that
-    // needs to be satisfied in a follow‑up request.  In that case we clear
-    // the stored lastResponseId so a subsequent run starts a clean turn.
-    if (this.pendingAborts.size === 0) {
-      try {
-        this.onReset();
-      } catch {
-        /* ignore */
-      }
-    }
-
-    // NOTE: We intentionally do *not* clear `lastResponseId` here.  If the
-    // stream produced a `function_call` before the user cancelled, OpenAI now
-    // expects a corresponding `function_call_output` that must reference that
-    // very same response ID.  We therefore keep the ID around so the
-    // follow‑up request can still satisfy the contract.
     this.onLoading(false);
 
     /* Inform the UI that the run was aborted by the user. */
