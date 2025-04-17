@@ -94,12 +94,22 @@ export async function isModelSupported(
 }
 
 export function reportMissingAPIKeyForProvider(provider: string): void {
+  console.log({
+    provider,
+  });
+  if (!provider) {
+    const error = new Error("No provider provided");
+    console.error(error);
+    // throw error;
+  }
   // eslint-disable-next-line no-console
   console.error(
     (provider
       ? `\n${chalk.red("Missing API key for provider:")} ${provider}\n\n`
       : `\n${chalk.red("Missing API key:")}\n\n`) +
-      `Please set the following environment variable:\n` +
+      (provider
+        ? `Please set the following environment variable:\n`
+        : "Please set one of the following environment variables:\n") +
       (() => {
         switch (provider) {
           case "openai":

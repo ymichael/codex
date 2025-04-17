@@ -64,6 +64,9 @@ function getAPIKeyForProviderOrExit(provider: string): string {
       }
       reportMissingAPIKeyForProvider(provider);
       process.exit(1);
+    case "ollama":
+      // Ollama doesn't require an API key but the openai client requires one
+      return "ollama";
     default:
       reportMissingAPIKeyForProvider("");
       process.exit(1);
@@ -252,41 +255,10 @@ export type LoadConfigOptions = {
   provider?: string;
 };
 
-export const loadConfig = (
-  configPath: string | undefined = CONFIG_FILEPATH,
+export const loadInstructions = (
   instructionsPath: string | undefined = INSTRUCTIONS_FILEPATH,
   options: LoadConfigOptions = {},
-): AppConfig => {
-  // Determine the actual path to load. If the provided path doesn't exist and
-  // the caller passed the default JSON path, automatically fall back to YAML
-  // variants.
-  let actualConfigPath = configPath;
-  if (!existsSync(actualConfigPath)) {
-    if (configPath === CONFIG_FILEPATH) {
-      if (existsSync(CONFIG_YAML_FILEPATH)) {
-        actualConfigPath = CONFIG_YAML_FILEPATH;
-      } else if (existsSync(CONFIG_YML_FILEPATH)) {
-        actualConfigPath = CONFIG_YML_FILEPATH;
-      }
-    }
-  }
-
-  let storedConfig: StoredConfig = {};
-  if (existsSync(actualConfigPath)) {
-    const raw = readFileSync(actualConfigPath, "utf-8");
-    const ext = extname(actualConfigPath).toLowerCase();
-    try {
-      if (ext === ".yaml" || ext === ".yml") {
-        storedConfig = loadYaml(raw) as unknown as StoredConfig;
-      } else {
-        storedConfig = JSON.parse(raw);
-      }
-    } catch {
-      // If parsing fails, fall back to empty config to avoid crashing.
-      storedConfig = {};
-    }
-  }
-
+): string => {
   const instructionsFilePathResolved =
     instructionsPath ?? INSTRUCTIONS_FILEPATH;
   const userInstructions = existsSync(instructionsFilePathResolved)
@@ -322,6 +294,59 @@ export const loadConfig = (
   const combinedInstructions = [userInstructions, projectDoc]
     .filter((s) => s && s.trim() !== "")
     .join("\n\n--- project-doc ---\n\n");
+
+  try {
+    // Always ensure the instructions file exists so users can edit it.
+    if (!existsSync(instructionsFilePathResolved)) {
+      const instrDir = dirname(instructionsFilePathResolved);
+      if (!existsSync(instrDir)) {
+        mkdirSync(instrDir, { recursive: true });
+      }
+      writeFileSync(instructionsFilePathResolved, userInstructions, "utf-8");
+    }
+  } catch {
+    // Silently ignore any errors – failure to persist the defaults shouldn't
+    // block the CLI from starting.  A future explicit `codex config` command
+    // or `saveConfig()` call can handle (re‑)writing later.
+  }
+
+  return combinedInstructions;
+};
+
+export const loadConfig = (
+  configPath: string | undefined = CONFIG_FILEPATH,
+  instructionsPath: string | undefined = INSTRUCTIONS_FILEPATH,
+  options: LoadConfigOptions = {},
+): AppConfig => {
+  // Determine the actual path to load. If the provided path doesn't exist and
+  // the caller passed the default JSON path, automatically fall back to YAML
+  // variants.
+  let actualConfigPath = configPath;
+  if (!existsSync(actualConfigPath)) {
+    if (configPath === CONFIG_FILEPATH) {
+      if (existsSync(CONFIG_YAML_FILEPATH)) {
+        actualConfigPath = CONFIG_YAML_FILEPATH;
+      } else if (existsSync(CONFIG_YML_FILEPATH)) {
+        actualConfigPath = CONFIG_YML_FILEPATH;
+      }
+    }
+  }
+
+  let storedConfig: StoredConfig = {};
+  if (existsSync(actualConfigPath)) {
+    const raw = readFileSync(actualConfigPath, "utf-8");
+    const ext = extname(actualConfigPath).toLowerCase();
+    try {
+      if (ext === ".yaml" || ext === ".yml") {
+        storedConfig = loadYaml(raw) as unknown as StoredConfig;
+      } else {
+        storedConfig = JSON.parse(raw);
+      }
+    } catch {
+      // If parsing fails, fall back to empty config to avoid crashing.
+      storedConfig = {};
+    }
+  }
 
   const storedProvider =
     storedConfig.provider && storedConfig.provider.trim() !== ""
@@ -364,7 +389,7 @@ export const loadConfig = (
     apiKey: apiKeyForProvider,
     provider: derivedProvider,
     baseURL: derivedBaseURL,
-    instructions: combinedInstructions,
+    instructions: loadInstructions(instructionsPath, options),
   };
 
   // -----------------------------------------------------------------------
@@ -398,15 +423,6 @@ export const loadConfig = (
       } else {
         writeFileSync(actualConfigPath, EMPTY_CONFIG_JSON, "utf-8");
       }
-    }
-
-    // Always ensure the instructions file exists so users can edit it.
-    if (!existsSync(instructionsFilePathResolved)) {
-      const instrDir = dirname(instructionsFilePathResolved);
-      if (!existsSync(instrDir)) {
-        mkdirSync(instrDir, { recursive: true });
-      }
-      writeFileSync(instructionsFilePathResolved, userInstructions, "utf-8");
     }
   } catch {
     // Silently ignore any errors – failure to persist the defaults shouldn't

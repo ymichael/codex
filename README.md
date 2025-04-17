@@ -160,12 +160,12 @@ Both approaches are _transparent_ to everyday usage – you still run `codex` fr
 
 ## CLI Reference
 
-| Command        | Purpose                             | Example                              |
-| -------------- | ----------------------------------- | ------------------------------------ |
-| `codex`        | Interactive REPL                    | `codex`                              |
-| `codex "…"`    | Initial prompt for interactive REPL | `codex "fix lint errors"`            |
-| `codex -q "…"` | Non‑interactive "quiet mode"        | `codex -q --json "explain utils.ts"` |
-| `codex completion <bash\|zsh\|fish>` | Print shell completion script    | `codex completion bash`               |
+| Command                              | Purpose                             | Example                              |
+| ------------------------------------ | ----------------------------------- | ------------------------------------ |
+| `codex`                              | Interactive REPL                    | `codex`                              |
+| `codex "…"`                          | Initial prompt for interactive REPL | `codex "fix lint errors"`            |
+| `codex -q "…"`                       | Non‑interactive "quiet mode"        | `codex -q --json "explain utils.ts"` |
+| `codex completion <bash\|zsh\|fish>` | Print shell completion script       | `codex completion bash`              |
 
 Key flags: `--model/-m`, `--approval-mode/-a`, and `--quiet/-q`.
 
@@ -262,7 +262,8 @@ Codex looks for config files in **`~/.codex/`**.
 // ~/.codex/config.json
 {
   "model": "o4-mini", // Default model
-  "fullAutoErrorMode": "ask-user", // or ignore-and-continue
+  "provider": "openai", // Default provider
+  "fullAutoErrorMode": "ask-user" // or ignore-and-continue
 }
 ```
 
@@ -270,6 +271,7 @@ You can also define custom instructions:
 
 ```md
 # ~/.codex/instructions.md
+
 - Always respond with emojis
 - Only use git commands if I explicitly mention you should
 ```
@@ -278,29 +280,34 @@ You can also define custom instructions:
 
 In addition to OpenAI, Codex supports the following alternative AI providers:
 
-#### Google Gemini
+- gemini
+- openrouter
+- ollama
 
-Set your Gemini API key as an environment variable:
+To use a different provider, set the `provider` key in your config file:
+
+```json
+{
+  "provider": "gemini"
+}
+```
+
+OR use the `--provider` flag. eg. `codex --provider gemini`
+
+Here's a list of all the providers and their default models:
+
+| Provider   | Environment Variable Required | Default Agentic Model        | Default Full Context Model |
+| ---------- | ----------------------------- | ---------------------------- | -------------------------- |
+| openai     | OPENAI_API_KEY                | o4-mini                      | o3                         |
+| gemini     | GOOGLE_GENERATIVE_AI_API_KEY  | gemini-2.5-pro-preview-03-25 | gemini-2.0-flash           |
+| openrouter | OPENROUTER_API_KEY            | openai/o4-mini               | openai/o3                  |
+| ollama     | Not required                  | User must specify            | User must specify          |
+
+#### When using an alternative provider, make sure you have the correct environment variables set.
 
 ```bash
 export GOOGLE_GENERATIVE_AI_API_KEY="your-gemini-api-key-here"
 ```
-
-When using Gemini, Codex will automatically use:
-- `gemini-2.5-pro-preview-03-25` as the agentic model
-- `gemini-2.0-flash` as the full context model
-
-#### OpenRouter
-
-Set your OpenRouter API key as an environment variable:
-
-```bash
-export OPENROUTER_API_KEY="your-openrouter-api-key-here"
-```
-
-When using OpenRouter, Codex will automatically use:
-- `openai/o4-mini` as the agentic model
-- `openai/o3` as the full context model
 
 ---
 

@@ -2,7 +2,7 @@
 
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 
-import { loadConfig } from "../config";
+import { loadInstructions } from "../config";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -19,8 +19,7 @@ async function saveRolloutToHomeSessions(
   const ts = timestamp.replace(/[:.]/g, "-").slice(0, 10);
   const filename = `rollout-${ts}-${sessionId}.json`;
   const filePath = path.join(SESSIONS_ROOT, filename);
-  const config = loadConfig();
-
+  const instructions = loadInstructions();
   try {
     await fs.writeFile(
       filePath,
@@ -29,7 +28,7 @@ async function saveRolloutToHomeSessions(
           session: {
             timestamp,
             id: sessionId,
-            instructions: config.instructions,
+            instructions,
           },
           items,
         },
