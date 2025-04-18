@@ -82,7 +82,7 @@ function baseURLForProvider(provider: string): string {
     case "openai":
       return "https://api.openai.com/v1";
     case "ollama":
-      return "http://localhost:11434/v1";
+      return process.env["OLLAMA_BASE_URL"] ?? "http://localhost:11434/v1";
     case "gemini":
       return "https://generativelanguage.googleapis.com/v1beta/openai/";
     case "openrouter":
