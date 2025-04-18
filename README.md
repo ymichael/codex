@@ -35,8 +35,6 @@
   - [Review process](#review-process)
   - [Community values](#community-values)
   - [Getting help](#getting-help)
-  - [Contributor License Agreement (CLA)](#contributor-license-agreement-cla)
-    - [Quick fixes](#quick-fixes)
   - [Releasing `codex`](#releasing-codex)
 - [Security \& Responsible AI](#securityresponsibleai)
 - [License](#license)
@@ -409,14 +407,6 @@ More broadly we welcome contributions – whether you are opening your very firs
   npm test && npm run lint && npm run typecheck
   ```
 
-- If you have **not** yet signed the Contributor License Agreement (CLA), add a PR comment containing the exact text
-
-  ```text
-  I have read the CLA Document and I hereby sign the CLA
-  ```
-
-  The CLA‑Assistant bot will turn the PR status green once all authors have signed.
-
 ```bash
 # Watch mode (tests rerun on change)
 npm run test:watch
@@ -460,30 +450,6 @@ npm run format:fix
 If you run into problems setting up the project, would like feedback on an idea, or just want to say _hi_ – please open a Discussion or jump into the relevant issue. We are happy to help.
 
 Together we can make Codex CLI an incredible tool. **Happy hacking!** :rocket:
-
-### Contributor License Agreement (CLA)
-
-All contributors **must** accept the CLA. The process is lightweight:
-
-1. Open your pull request.
-2. Paste the following comment (or reply `recheck` if you've signed before):
-
-   ```text
-   I have read the CLA Document and I hereby sign the CLA
-   ```
-
-3. The CLA‑Assistant bot records your signature in the repo and marks the status check as passed.
-
-No special Git commands, email attachments, or commit footers required.
-
-#### Quick fixes
-
-| Scenario          | Command                                                                                   |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| Amend last commit | `git commit --amend -s --no-edit && git push -f`                                          |
-| GitHub UI only    | Edit the commit message in the PR → add<br>`Signed-off-by: Your Name <email@example.com>` |
-
-The **DCO check** blocks merges until every commit in the PR carries the footer (with squash this is just the one).
 
 ### Releasing `codex`
 
