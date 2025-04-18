@@ -134,8 +134,8 @@ the network enabled, once we're confident in additional safeguards.
 The hardening mechanism Codex uses depends on your OS:
 
 - **macOS 12+** – commands are wrapped with **Apple Seatbelt** (`sandbox-exec`).
-
-  writable roots (`$PWD`, `$TMPDIR`, `~/.open-codex`, etc.).
+  - Everything is placed in a read‑only jail except for a small set of 
+    writable roots (`$PWD`, `$TMPDIR`, `~/.open-codex`, etc.).
   - Outbound network is _fully blocked_ by default – even if a child process
     tries to `curl` somewhere it will fail.
 
