@@ -135,8 +135,7 @@ The hardening mechanism Codex uses depends on your OS:
 
 - **macOS 12+** – commands are wrapped with **Apple Seatbelt** (`sandbox-exec`).
 
-  - Everything is placed in a read‑only jail except for a small set of
-    writable roots (`$PWD`, `$TMPDIR`, `~/.codex`, etc.).
+  writable roots (`$PWD`, `$TMPDIR`, `~/.open-codex`, etc.).
   - Outbound network is _fully blocked_ by default – even if a child process
     tries to `curl` somewhere it will fail.
 
@@ -180,7 +179,7 @@ Key flags: `--model/-m`, `--approval-mode/-a`, and `--quiet/-q`.
 
 Codex merges Markdown instructions in this order:
 
-1. `~/.codex/instructions.md` – personal global guidance
+1. `~/.open-codex/instructions.md` – personal global guidance
 2. `codex.md` at repo root – shared project notes
 3. `codex.md` in cwd – sub‑package specifics
 
@@ -269,10 +268,10 @@ npm link
 
 ## Configuration
 
-Codex looks for config files in **`~/.codex/`**.
+Codex looks for config files in **`~/.open-codex/`**.
 
 ```json
-// ~/.codex/config.json
+// ~/.open-codex/config.json
 {
   "model": "o4-mini", // Default model
   "provider": "openai", // Default provider
@@ -283,7 +282,7 @@ Codex looks for config files in **`~/.codex/`**.
 You can also define custom instructions:
 
 ```md
-# ~/.codex/instructions.md
+# ~/.open-codex/instructions.md
 
 - Always respond with emojis
 - Only use git commands if I explicitly mention you should
