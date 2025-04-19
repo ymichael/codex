@@ -318,12 +318,7 @@ export class AgentLoop {
       const outputItem: ChatCompletionMessageParam = {
         role: "tool",
         tool_call_id: callId,
-        content: [
-          {
-            type: "text",
-            text: `invalid arguments: ${rawArguments}`,
-          },
-        ],
+        content: `invalid arguments: ${rawArguments}`,
       };
       return [outputItem];
     }
@@ -331,12 +326,7 @@ export class AgentLoop {
     const outputItem: ChatCompletionMessageParam = {
       role: "tool",
       tool_call_id: callId,
-      content: [
-        {
-          type: "text",
-          text: "no function found",
-        },
-      ],
+      content: "no function found",
     };
 
     // We intentionally *do not* remove this `callId` from the `pendingAborts`
@@ -366,13 +356,7 @@ export class AgentLoop {
         this.getCommandConfirmation,
         this.execAbortController?.signal,
       );
-      outputItem.content = [
-        {
-          type: "text",
-          text: JSON.stringify({ output: outputText, metadata }),
-        },
-      ];
-
+      outputItem.content = JSON.stringify({ output: outputText, metadata });
       if (additionalItemsFromExec) {
         additionalItems.push(...additionalItemsFromExec);
       }
@@ -430,15 +414,10 @@ export class AgentLoop {
           abortOutputs.push({
             role: "tool",
             tool_call_id: id,
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({
-                  output: "aborted",
-                  metadata: { exit_code: 1, duration_seconds: 0 },
-                }),
-              },
-            ],
+            content: JSON.stringify({
+              output: "aborted",
+              metadata: { exit_code: 1, duration_seconds: 0 },
+            }),
           });
         }
         // Once converted the pending list can be cleared.
