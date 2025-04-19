@@ -283,7 +283,11 @@ Codex looks for config files in **`~/.codex/`**.
 {
   "model": "o4-mini", // Default model
   "provider": "openai", // Default provider
-  "fullAutoErrorMode": "ask-user" // or ignore-and-continue
+  "fullAutoErrorMode": "ask-user", // or ignore-and-continue
+  "safeCommands": [
+    "npm test", // Automatically approve npm test
+    "yarn lint" // Automatically approve yarn lint
+  ]
 }
 ```
 

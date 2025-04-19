@@ -64,6 +64,7 @@ test("loads default config if files don't exist", () => {
     instructions: "",
     provider: "openai",
     apiKey: "test-api-key",
+    safeCommands: [],
   });
 });
 
@@ -74,6 +75,7 @@ test("saves and loads config correctly", () => {
     apiKey: "test-api-key",
     provider: "openai",
     baseURL: "https://api.openai.com/v1",
+    safeCommands: [],
   };
   saveConfig(testConfig, testConfigPath, testInstructionsPath);
 
