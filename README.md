@@ -276,13 +276,14 @@ npm link
 
 ## Configuration
 
-Codex looks for config files in **`~/.codex/`**.
+Codex looks for config files in **`~/.codex/`** (either YAML or JSON format).
 
 ```json
 // ~/.codex/config.json
 {
   "model": "o4-mini", // Default model
   "provider": "openai", // Default provider
+  "approvalMode": "suggest", // or auto-edit, full-auto
   "fullAutoErrorMode": "ask-user", // or ignore-and-continue
   "safeCommands": [
     "npm test", // Automatically approve npm test

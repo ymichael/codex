@@ -175,6 +175,7 @@ export type AppConfig = {
   provider?: string;
   model: string;
   instructions: string;
+  approvalMode?: AutoApprovalMode;
   fullAutoErrorMode?: FullAutoErrorMode;
   memory?: MemoryConfig;
   /** User-defined safe commands */
@@ -417,6 +418,7 @@ export const loadConfig = (
     provider: derivedProvider,
     baseURL: derivedBaseURL,
     instructions: loadInstructions(instructionsPath, options),
+    approvalMode: storedConfig.approvalMode,
     safeCommands: storedConfig.safeCommands ?? [],
   };
 
@@ -507,19 +509,16 @@ export const saveConfig = (
   // Create the config object to save
   const configToSave: StoredConfig = {
     model: config.model,
+    approvalMode: config.approvalMode,
   };
   // Save: User-defined safe commands
   if (config.safeCommands && config.safeCommands.length > 0) {
     configToSave.safeCommands = config.safeCommands;
   }
   if (ext === ".yaml" || ext === ".yml") {
-    writeFileSync(targetPath, dumpYaml({ model: config.model }), "utf-8");
+    writeFileSync(targetPath, dumpYaml(configToSave), "utf-8");
   } else {
-    writeFileSync(
-      targetPath,
-      JSON.stringify({ model: config.model }, null, 2),
-      "utf-8",
-    );
+    writeFileSync(targetPath, JSON.stringify(configToSave, null, 2), "utf-8");
   }
 
   writeFileSync(instructionsPath, config.instructions, "utf-8");
