@@ -297,6 +297,7 @@ This fork of Codex supports multiple AI providers:
 - gemini
 - openrouter
 - ollama
+- xai
 
 To use a different provider, set the `provider` key in your config file:
 
@@ -316,6 +317,7 @@ Here's a list of all the providers and their default models:
 | gemini     | GOOGLE_GENERATIVE_AI_API_KEY  | gemini-2.5-pro-preview-03-25 | gemini-2.0-flash           |
 | openrouter | OPENROUTER_API_KEY            | openai/o4-mini               | openai/o3                  |
 | ollama     | Not required                  | User must specify            | User must specify          |
+| xai        | XAI_API_KEY                   | grok-3-mini-beta             | grok-3-beta                |
 
 #### When using an alternative provider, make sure you have the correct environment variables set.
 
