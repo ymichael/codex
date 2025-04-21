@@ -65,7 +65,6 @@ test("loads default config if files don't exist", () => {
     instructions: "",
     provider: "openai",
     apiKey: "test-api-key",
-    safeCommands: [],
   });
 });
 
@@ -76,7 +75,6 @@ test("saves and loads config correctly", () => {
     apiKey: "test-api-key",
     provider: "openai",
     baseURL: "https://api.openai.com/v1",
-    safeCommands: [],
   };
   saveConfig(testConfig, testConfigPath, testInstructionsPath);
 
@@ -116,7 +114,7 @@ test("loads user instructions + project doc when codex.md is present", () => {
   );
 });
 
-test.only("loads and saves approvalMode correctly", () => {
+test("loads and saves approvalMode correctly", () => {
   // Setup config with approvalMode
   memfs[testConfigPath] = JSON.stringify(
     {
