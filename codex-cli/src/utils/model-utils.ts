@@ -115,6 +115,8 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
             return `- ${chalk.bold(
               "GOOGLE_GENERATIVE_AI_API_KEY",
             )} for Google Gemini models\n`;
+          case "xai":
+            return `- ${chalk.bold("XAI_API_KEY")} for xAI models\n`;
           default:
             return (
               [
@@ -123,6 +125,7 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
                 `- ${chalk.bold(
                   "GOOGLE_GENERATIVE_AI_API_KEY",
                 )} for Google Gemini models`,
+                `- ${chalk.bold("XAI_API_KEY")} for xAI models`,
               ].join("\n") + "\n"
             );
         }
@@ -141,6 +144,10 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
           case "gemini":
             return `You can create a Google Generative AI key here: ${chalk.bold(
               chalk.underline("https://aistudio.google.com/apikey"),
+            )}\n`;
+          case "xai":
+            return `You can create an xAI key here: ${chalk.bold(
+              chalk.underline("https://console.x.ai/team/default/api-keys"),
             )}\n`;
           default:
             return "";

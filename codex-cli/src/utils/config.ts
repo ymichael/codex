@@ -42,6 +42,8 @@ if (!process.env["OPENAI_API_KEY"]) {
     DEFAULT_PROVIDER = "gemini";
   } else if (process.env["OPENROUTER_API_KEY"]) {
     DEFAULT_PROVIDER = "openrouter";
+  } else if (process.env["XAI_API_KEY"]) {
+    DEFAULT_PROVIDER = "xai";
   }
 }
 
@@ -71,6 +73,13 @@ function getAPIKeyForProviderOrExit(provider: string): string {
     case "ollama":
       // Ollama doesn't require an API key but the openai client requires one
       return "ollama";
+    case "xai":
+      if (process.env["XAI_API_KEY"]) {
+        return process.env["XAI_API_KEY"];
+      }
+      reportMissingAPIKeyForProvider(provider);
+      process.exit(1);
+      break;
     default:
       reportMissingAPIKeyForProvider("");
       process.exit(1);
@@ -87,6 +96,8 @@ function baseURLForProvider(provider: string): string {
       return "https://generativelanguage.googleapis.com/v1beta/openai/";
     case "openrouter":
       return "https://openrouter.ai/api/v1";
+    case "xai":
+      return "https://api.x.ai/v1";
     default:
       // TODO throw?
       return "";
@@ -112,6 +123,11 @@ function defaultModelsForProvider(provider: string): {
       return {
         agentic: "openai/o4-mini",
         fullContext: "openai/o3",
+      };
+    case "xai":
+      return {
+        agentic: "grok-3-mini-beta",
+        fullContext: "grok-3-beta",
       };
     default:
       return {
