@@ -47,7 +47,7 @@ Enter "q" to exit out of the current session and `open poem.html`. You should se
 
 Codex supports two types of Markdown-based instruction files that influence model behavior and prompting:
 
-### `~/.codex/instructions.md`
+### `~/.open-codex/instructions.md`
 Global, user-level custom guidance injected into every session. You should keep this relatively short and concise. These instructions are applied to all Codex runs across all projects and are great for personal defaults, shell setup tips, safety constraints, or preferred tools.
 
 **Example:** "Before executing shell commands, create and activate a `.codex-venv` Python environment." or "Avoid running pytest until you've completed all your changes."

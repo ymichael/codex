@@ -19,7 +19,7 @@ import { dirname, join, extname, resolve as resolvePath } from "path";
 export const DEFAULT_APPROVAL_MODE = AutoApprovalMode.SUGGEST;
 export const DEFAULT_INSTRUCTIONS = "";
 
-export const CONFIG_DIR = join(homedir(), ".codex");
+export const CONFIG_DIR = join(homedir(), ".open-codex");
 export const CONFIG_JSON_FILEPATH = join(CONFIG_DIR, "config.json");
 export const CONFIG_YAML_FILEPATH = join(CONFIG_DIR, "config.yaml");
 export const CONFIG_YML_FILEPATH = join(CONFIG_DIR, "config.yml");
@@ -418,7 +418,7 @@ export const loadConfig = (
   // -----------------------------------------------------------------------
   // First‑run bootstrap: if the configuration file (and/or its containing
   // directory) didn't exist we create them now so that users end up with a
-  // materialised ~/.codex/config.json file on first execution.  This mirrors
+  // materialised ~/.open-codex/config.json file on first execution.  This mirrors
   // what `saveConfig()` would do but without requiring callers to remember to
   // invoke it separately.
   //
