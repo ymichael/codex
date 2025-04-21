@@ -23,7 +23,9 @@ export async function createInputItem(
       const mime = kind?.mime ?? "application/octet-stream";
       content.push({
         type: "image_url",
-        image_url: `data:${mime};base64,${encoded}`,
+        image_url: {
+          url: `data:${mime};base64,${encoded}`,
+        },
       });
     } catch (err) {
       content.push({
