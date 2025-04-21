@@ -284,11 +284,7 @@ Codex looks for config files in **`~/.codex/`** (either YAML or JSON format).
   "model": "o4-mini", // Default model
   "provider": "openai", // Default provider
   "approvalMode": "suggest", // or auto-edit, full-auto
-  "fullAutoErrorMode": "ask-user", // or ignore-and-continue
-  "safeCommands": [
-    "npm test", // Automatically approve npm test
-    "yarn lint" // Automatically approve yarn lint
-  ]
+  "fullAutoErrorMode": "ask-user" // or ignore-and-continue
 }
 ```
 
