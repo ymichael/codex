@@ -115,6 +115,8 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
             return `- ${chalk.bold(
               "GOOGLE_GENERATIVE_AI_API_KEY",
             )} for Google Gemini models\n`;
+        case "requesty":
+          return `- ${chalk.bold("REQUESTY_API_KEY")} for Requesty models\n`;
           default:
             return (
               [
@@ -123,6 +125,7 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
                 `- ${chalk.bold(
                   "GOOGLE_GENERATIVE_AI_API_KEY",
                 )} for Google Gemini models`,
+                `- ${chalk.bold("REQUESTY_API_KEY")} for Requesty models`,
               ].join("\n") + "\n"
             );
         }
@@ -142,6 +145,8 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
             return `You can create a Google Generative AI key here: ${chalk.bold(
               chalk.underline("https://aistudio.google.com/apikey"),
             )}\n`;
+          case "requesty":
+            return `Please obtain a Requesty API key from your Requesty account dashboard.\n`;
           default:
             return "";
         }

@@ -5,7 +5,7 @@
 
 > **Important Note**: This is a fork of the [original OpenAI Codex CLI](https://github.com/openai/codex) with expanded model support and changed installation instructions. The main differences in this fork are:
 >
-> - Support for multiple AI providers (OpenAI, Gemini, OpenRouter, Ollama)
+> - Support for multiple AI providers (OpenAI, Gemini, OpenRouter, Ollama, Requesty)
 > - Uses the [Chat Completion API instead of the Responses API](https://platform.openai.com/docs/guides/responses-vs-chat-completions) which allows us to support any openai compatible provider and model.
 > - All other functionality remains similar to the original project
 > - You can install this fork globally with `npm i -g open-codex`

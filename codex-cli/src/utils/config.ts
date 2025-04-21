@@ -42,6 +42,8 @@ if (!process.env["OPENAI_API_KEY"]) {
     DEFAULT_PROVIDER = "gemini";
   } else if (process.env["OPENROUTER_API_KEY"]) {
     DEFAULT_PROVIDER = "openrouter";
+  } else if (process.env["REQUESTY_API_KEY"]) {
+    DEFAULT_PROVIDER = "requesty";
   }
 }
 
@@ -68,6 +70,13 @@ function getAPIKeyForProviderOrExit(provider: string): string {
       reportMissingAPIKeyForProvider(provider);
       process.exit(1);
       break;
+    case "requesty":
+      if (process.env["REQUESTY_API_KEY"]) {
+        return process.env["REQUESTY_API_KEY"];
+      }
+      reportMissingAPIKeyForProvider(provider);
+      process.exit(1);
+      break;
     case "ollama":
       // Ollama doesn't require an API key but the openai client requires one
       return "ollama";
@@ -87,6 +96,8 @@ function baseURLForProvider(provider: string): string {
       return "https://generativelanguage.googleapis.com/v1beta/openai/";
     case "openrouter":
       return "https://openrouter.ai/api/v1";
+    case "requesty":
+      return process.env["REQUESTY_BASE_URL"] ?? "";
     default:
       // TODO throw?
       return "";
@@ -112,6 +123,12 @@ function defaultModelsForProvider(provider: string): {
       return {
         agentic: "openai/o4-mini",
         fullContext: "openai/o3",
+      };
+    case "requesty":
+      // Requesty provider detected; user must specify model explicitly via config or flag
+      return {
+        agentic: "",
+        fullContext: "",
       };
     default:
       return {
