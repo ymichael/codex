@@ -25,9 +25,7 @@
     "release": "npm run release:readme && npm run release:version && npm run build && npm publish"
   },
   "files": [
-    "README.md",
-    "dist",
-    "src"
+    "dist"
   ],
   "dependencies": {
     "@inkjs/ui": "^2.0.0",
