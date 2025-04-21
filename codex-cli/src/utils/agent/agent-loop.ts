@@ -145,12 +145,10 @@ export class AgentLoop {
 
     /* Inform the UI that the run was aborted by the user. */
     // const cancelNotice: ResponseItem = {
-    //   id: `cancel-${Date.now()}`,
-    //   type: "message",
-    //   role: "system",
+    //   role: "assistant",
     //   content: [
     //     {
-    //       type: "input_text",
+    //       type: "text",
     //       text: "⏹️  Execution canceled by user.",
     //     },
     //   ],
@@ -830,12 +828,10 @@ export class AgentLoop {
         // 1) Per‑turn measurement – exact time spent between request and
         //    response for *this* command.
         // this.onItem({
-        //   id: `thinking-${thinkingEnd}`,
-        //   type: "message",
-        //   role: "system",
+        //   role: "assistant",
         //   content: [
         //     {
-        //       type: "input_text",
+        //       type: "text",
         //       text: `🤔  Thinking time: ${Math.round(
         //         (thinkingEnd - thinkingStart) / 1000
         //       )} s`,
@@ -847,12 +843,10 @@ export class AgentLoop {
         //    time across multiple turns.
         // this.cumulativeThinkingMs += thinkingEnd - thinkingStart;
         // this.onItem({
-        //   id: `thinking-total-${thinkingEnd}`,
-        //   type: "message",
-        //   role: "system",
+        //   role: "assistant",
         //   content: [
         //     {
-        //       type: "input_text",
+        //       type: "text",
         //       text: `⏱  Total thinking time: ${Math.round(
         //         this.cumulativeThinkingMs / 1000
         //       )} s`,
@@ -1039,12 +1033,10 @@ export class AgentLoop {
           }. Error details: ${errorDetails}. Please verify your settings and try again.`;
 
           this.onItem({
-            id: `error-${Date.now()}`,
-            type: "message",
-            role: "system",
+            role: "assistant",
             content: [
               {
-                type: "input_text",
+                type: "text",
                 text: msgText,
               },
             ],
