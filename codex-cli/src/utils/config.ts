@@ -89,7 +89,7 @@ function getAPIKeyForProviderOrExit(provider: string): string {
 function baseURLForProvider(provider: string): string {
   switch (provider) {
     case "openai":
-      return "https://api.openai.com/v1";
+      return process.env["OPENAI_API_BASE"] ?? "https://api.openai.com/v1";
     case "ollama":
       return process.env["OLLAMA_BASE_URL"] ?? "http://localhost:11434/v1";
     case "gemini":
