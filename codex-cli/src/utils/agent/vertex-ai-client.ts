@@ -103,7 +103,7 @@ export class VertexAIClient {
               ? msg.content.map((c: {type: string; text?: string}) => typeof c === 'string' ? c : (c.type === 'text' ? c.text : '')).join(' ')
               : '';
 
-          const role = msg.role === 'assistant' ? 'model' : msg.role;
+          const role = msg.role === 'assistant' ? 'model' : 'user';
 
           return {
             role,
