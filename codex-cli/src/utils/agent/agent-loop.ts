@@ -19,6 +19,7 @@ import {
   setSessionId,
 } from "../session.js";
 import { handleExecCommand } from "./handle-exec-command.js";
+import { VertexAIClient } from "./vertex-ai-client.js";
 import { randomUUID } from "node:crypto";
 import OpenAI, { APIConnectionTimeoutError } from "openai";
 
@@ -58,12 +59,9 @@ export class AgentLoop {
   private approvalPolicy: ApprovalPolicy;
   private config: AppConfig;
 
-  // Using `InstanceType<typeof OpenAI>` sidesteps typing issues with the OpenAI package under
-  // the TS 5+ `moduleResolution=bundler` setup. OpenAI client instance. We keep the concrete
-  // type to avoid sprinkling `any` across the implementation while still allowing paths where
-  // the OpenAI SDK types may not perfectly match. The `typeof OpenAI` pattern captures the
-  // instance shape without resorting to `any`.
-  private oai: OpenAI;
+  // Client can be either OpenAI or our VertexAIClient
+  private oai: OpenAI | VertexAIClient;
+  private provider: string;
 
   private onItem: (item: ChatCompletionMessageParam) => void;
   private onLoading: (loading: boolean) => void;
@@ -220,26 +218,48 @@ export class AgentLoop {
     this.getCommandConfirmation = getCommandConfirmation;
     this.onReset = onReset;
     this.sessionId = getSessionId() || randomUUID().replaceAll("-", "");
-    // Configure OpenAI client with optional timeout (ms) from environment
-    const timeoutMs = OPENAI_TIMEOUT_MS;
-    const apiKey = this.config.apiKey;
-    const baseURL = this.config.baseURL;
-    this.oai = new OpenAI({
-      // The OpenAI JS SDK only requires `apiKey` when making requests against
-      // the official API.  When running unit‑tests we stub out all network
-      // calls so an undefined key is perfectly fine.  We therefore only set
-      // the property if we actually have a value to avoid triggering runtime
-      // errors inside the SDK (it validates that `apiKey` is a non‑empty
-      // string when the field is present).
-      ...(apiKey ? { apiKey } : {}),
-      ...(baseURL ? { baseURL } : {}),
-      defaultHeaders: {
-        originator: ORIGIN,
-        version: CLI_VERSION,
-        session_id: this.sessionId,
-      },
-      ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
-    });
+    
+    // Store the provider for later use
+    this.provider = this.config.provider || "openai";
+    
+    // Initialize the appropriate client based on provider
+    if (this.provider === "vertexai") {
+      // For Vertex AI, use our custom client
+      const projectId = process.env["VERTEXAI_PROJECT_ID"] || "";
+      const location = process.env["VERTEXAI_LOCATION"] || "us-central1";
+      
+      if (!projectId) {
+        // eslint-disable-next-line no-console
+        console.warn("Warning: VERTEXAI_PROJECT_ID not set. Using Application Default Credentials.");
+      }
+      
+      this.oai = new VertexAIClient({
+        projectId,
+        location,
+      });
+    } else {
+      // For all other providers, use the OpenAI client with appropriate config
+      // Configure OpenAI client with optional timeout (ms) from environment
+      const timeoutMs = OPENAI_TIMEOUT_MS;
+      const apiKey = this.config.apiKey;
+      const baseURL = this.config.baseURL;
+      this.oai = new OpenAI({
+        // The OpenAI JS SDK only requires `apiKey` when making requests against
+        // the official API.  When running unit‑tests we stub out all network
+        // calls so an undefined key is perfectly fine.  We therefore only set
+        // the property if we actually have a value to avoid triggering runtime
+        // errors inside the SDK (it validates that `apiKey` is a non‑empty
+        // string when the field is present).
+        ...(apiKey ? { apiKey } : {}),
+        ...(baseURL ? { baseURL } : {}),
+        defaultHeaders: {
+          originator: ORIGIN,
+          version: CLI_VERSION,
+          session_id: this.sessionId,
+        },
+        ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
+      });
+    }
 
     setSessionId(this.sessionId);
     setCurrentModel(this.model);
