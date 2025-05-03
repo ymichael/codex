@@ -131,8 +131,8 @@ function defaultModelsForProvider(provider: string): {
       };
     case "vertexai":
       return {
-        agentic: "gemini-1.5-pro",
-        fullContext: "gemini-1.5-flash",
+        agentic: "gemini-2.5-pro-exp-03-25",
+        fullContext: "gemini-2.5-pro-exp-03-25",
       };
     case "openrouter":
       return {

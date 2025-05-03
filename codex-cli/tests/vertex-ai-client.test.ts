@@ -72,7 +72,7 @@ describe("VertexAIClient", () => {
     });
 
     const stream = await client.chat.completions.create({
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro-exp-03-25",
       messages: [
         { role: "system", content: "You are a helpful assistant" },
         { role: "user", content: "Hello" },
@@ -100,7 +100,7 @@ describe("VertexAIClient", () => {
     });
 
     const stream = await client.chat.completions.create({
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro-exp-03-25",
       messages: [{ role: "user", content: "What's the weather in London?" }],
       stream: true,
       tools: [
