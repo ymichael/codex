@@ -40,6 +40,8 @@ export let API_KEY = "";
 if (!process.env["OPENAI_API_KEY"]) {
   if (process.env["GOOGLE_GENERATIVE_AI_API_KEY"]) {
     DEFAULT_PROVIDER = "gemini";
+  } else if (process.env["GOOGLE_APPLICATION_CREDENTIALS"] || process.env["VERTEXAI_PROJECT_ID"]) {
+    DEFAULT_PROVIDER = "vertexai";
   } else if (process.env["OPENROUTER_API_KEY"]) {
     DEFAULT_PROVIDER = "openrouter";
   } else if (process.env["XAI_API_KEY"]) {
@@ -63,6 +65,10 @@ function getAPIKeyForProviderOrExit(provider: string): string {
       reportMissingAPIKeyForProvider(provider);
       process.exit(1);
       break;
+    case "vertexai":
+      // Vertex AI uses Application Default Credentials or explicit credentials file
+      // We use a placeholder API key here as the OpenAI client expects something
+      return "vertexai-placeholder";
     case "openrouter":
       if (process.env["OPENROUTER_API_KEY"]) {
         return process.env["OPENROUTER_API_KEY"];
@@ -94,6 +100,10 @@ function baseURLForProvider(provider: string): string {
       return process.env["OLLAMA_BASE_URL"] ?? "http://localhost:11434/v1";
     case "gemini":
       return "https://generativelanguage.googleapis.com/v1beta/openai/";
+    case "vertexai":
+      // Vertex AI doesn't use baseURL in the same way as other providers
+      // This is a placeholder since we'll use a different client
+      return "";
     case "openrouter":
       return "https://openrouter.ai/api/v1";
     case "xai":
@@ -118,6 +128,11 @@ function defaultModelsForProvider(provider: string): {
       return {
         agentic: "gemini-2.5-pro-preview-03-25",
         fullContext: "gemini-2.0-flash",
+      };
+    case "vertexai":
+      return {
+        agentic: "gemini-2.5-pro-exp-03-25",
+        fullContext: "gemini-2.5-pro-exp-03-25",
       };
     case "openrouter":
       return {
@@ -159,7 +174,7 @@ export type StoredConfig = {
 // propagating to existing users until they explicitly set a model.
 export const EMPTY_STORED_CONFIG: StoredConfig = { model: "" };
 
-// Pre‑stringified JSON variant so we don’t stringify repeatedly.
+// Pre‑stringified JSON variant so we don't stringify repeatedly.
 const EMPTY_CONFIG_JSON = JSON.stringify(EMPTY_STORED_CONFIG, null, 2) + "\n";
 
 export type MemoryConfig = {

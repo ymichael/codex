@@ -5,7 +5,7 @@
 
 > **Important Note**: This is a fork of the [original OpenAI Codex CLI](https://github.com/openai/codex) with expanded model support and changed installation instructions. The main differences in this fork are:
 >
-> - Support for multiple AI providers (OpenAI, Gemini, OpenRouter, Ollama)
+> - Support for multiple AI providers (OpenAI, Gemini, OpenRouter, Ollama, Vertex AI)
 > - Uses the [Chat Completion API instead of the Responses API](https://platform.openai.com/docs/guides/responses-vs-chat-completions) which allows us to support any openai compatible provider and model.
 > - All other functionality remains similar to the original project
 > - You can install this fork globally with `npm i -g open-codex`
@@ -109,7 +109,7 @@ files, and iterate – all under version control. In short, it's _chat‑driven
 development_ that understands and executes your repo.
 
 - **Zero setup** — bring your API key and it just works!
-- **Multiple AI providers** — use OpenAI, Gemini, OpenRouter, or Ollama!
+- **Multiple AI providers** — use OpenAI, Gemini, OpenRouter, Ollama, Vertex AI, or xAI!
 - **Full auto-approval, while safe + secure** by running network-disabled and directory-sandboxed
 - **Multimodal** — pass in screenshots or diagrams to implement features ✨
 
@@ -303,6 +303,7 @@ This fork of Codex supports multiple AI providers:
 
 - openai (default)
 - gemini
+- vertexai
 - openrouter
 - ollama
 - xai
@@ -311,27 +312,47 @@ To use a different provider, set the `provider` key in your config file:
 
 ```json
 {
-  "provider": "gemini"
+  "provider": "vertexai"
 }
 ```
 
-OR use the `--provider` flag. eg. `codex --provider gemini`
+OR use the `--provider` flag. eg. `codex --provider vertexai`
 
 Here's a list of all the providers and their default models:
 
-| Provider   | Environment Variable Required | Default Agentic Model        | Default Full Context Model |
-| ---------- | ----------------------------- | ---------------------------- | -------------------------- |
-| openai     | OPENAI_API_KEY                | o4-mini                      | o3                         |
-| gemini     | GOOGLE_GENERATIVE_AI_API_KEY  | gemini-2.5-pro-preview-03-25 | gemini-2.0-flash           |
-| openrouter | OPENROUTER_API_KEY            | openai/o4-mini               | openai/o3                  |
-| ollama     | Not required                  | User must specify            | User must specify          |
-| xai        | XAI_API_KEY                   | grok-3-mini-beta             | grok-3-beta                |
+| Provider   | Environment Variable Required                           | Default Agentic Model        | Default Full Context Model |
+| ---------- | ------------------------------------------------------- | ---------------------------- | -------------------------- |
+| openai     | OPENAI_API_KEY                                          | o4-mini                      | o3                         |
+| gemini     | GOOGLE_GENERATIVE_AI_API_KEY                            | gemini-2.5-pro-preview-03-25 | gemini-2.0-flash           |
+| vertexai   | GOOGLE_APPLICATION_CREDENTIALS or VERTEXAI_PROJECT_ID   | gemini-2.5-pro-exp-03-25     | gemini-2.5-pro-exp-03-25   |
+| openrouter | OPENROUTER_API_KEY                                      | openai/o4-mini               | openai/o3                  |
+| ollama     | Not required                                            | User must specify            | User must specify          |
+| xai        | XAI_API_KEY                                             | grok-3-mini-beta             | grok-3-beta                |
 
 #### When using an alternative provider, make sure you have the correct environment variables set.
 
 ```bash
 export GOOGLE_GENERATIVE_AI_API_KEY="your-gemini-api-key-here"
 ```
+
+#### For Vertex AI, you can either use:
+
+1. **Application Default Credentials**:
+   ```bash
+   # First authenticate with gcloud
+   gcloud auth application-default login
+   
+   # Then set the project ID and location
+   export VERTEXAI_PROJECT_ID="your-gcp-project-id" 
+   export VERTEXAI_LOCATION="us-central1"  # Default is us-central1
+   ```
+
+2. **Service Account Key**:
+   ```bash
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
+   export VERTEXAI_PROJECT_ID="your-gcp-project-id"  # Optional if in key file
+   export VERTEXAI_LOCATION="us-central1"  # Default is us-central1
+   ```
 
 ---
 
@@ -392,12 +413,12 @@ OpenAI rejected the request. Error details: Status: 400, Code: unsupported_param
 
 ## Funding Opportunity
 
-We’re excited to launch a **$1 million initiative** supporting open source projects that use Codex CLI and other OpenAI models.
+We're excited to launch a **$1 million initiative** supporting open source projects that use Codex CLI and other OpenAI models.
 
 - Grants are awarded in **$25,000** API credit increments.
 - Applications are reviewed **on a rolling basis**.
 
-**Interested? [Apply here](https://openai.com/form/codex-open-source-fund/).**
+**Interested? [Apply here](https://openai.com/form/codex-open-source-fund/).**
 
 ## Contributing
 

@@ -115,6 +115,14 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
             return `- ${chalk.bold(
               "GOOGLE_GENERATIVE_AI_API_KEY",
             )} for Google Gemini models\n`;
+          case "vertexai":
+            return `- ${chalk.bold(
+              "GOOGLE_APPLICATION_CREDENTIALS",
+            )} for Google Vertex AI (path to service account key file)\n` +
+            `  ${chalk.bold("OR")}\n` +
+            `- ${chalk.bold(
+              "VERTEXAI_PROJECT_ID",
+            )} and ${chalk.bold("VERTEXAI_LOCATION")} to use Application Default Credentials\n`;
           case "xai":
             return `- ${chalk.bold("XAI_API_KEY")} for xAI models\n`;
           default:
@@ -125,6 +133,13 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
                 `- ${chalk.bold(
                   "GOOGLE_GENERATIVE_AI_API_KEY",
                 )} for Google Gemini models`,
+                `- ${chalk.bold(
+                  "GOOGLE_APPLICATION_CREDENTIALS",
+                )} for Google Vertex AI (path to service account key file)`,
+                `  ${chalk.bold("OR")}`,
+                `- ${chalk.bold(
+                  "VERTEXAI_PROJECT_ID",
+                )} and ${chalk.bold("VERTEXAI_LOCATION")} to use Application Default Credentials`,
                 `- ${chalk.bold("XAI_API_KEY")} for xAI models`,
               ].join("\n") + "\n"
             );
@@ -144,6 +159,10 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
           case "gemini":
             return `You can create a Google Generative AI key here: ${chalk.bold(
               chalk.underline("https://aistudio.google.com/apikey"),
+            )}\n`;
+          case "vertexai":
+            return `You can learn more about Google Cloud Authentication here: ${chalk.bold(
+              chalk.underline("https://cloud.google.com/docs/authentication"),
             )}\n`;
           case "xai":
             return `You can create an xAI key here: ${chalk.bold(
