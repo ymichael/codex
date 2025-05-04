@@ -324,6 +324,7 @@ Here's a list of all the providers and their default models:
 | openai     | OPENAI_API_KEY                | o4-mini                      | o3                         |
 | gemini     | GOOGLE_GENERATIVE_AI_API_KEY  | gemini-2.5-pro-preview-03-25 | gemini-2.0-flash           |
 | openrouter | OPENROUTER_API_KEY            | openai/o4-mini               | openai/o3                  |
+| deepseek   | DEEPSEEK_API_KEY              | deepseek-coder               | deepseek-reasoner          |
 | ollama     | Not required                  | User must specify            | User must specify          |
 | xai        | XAI_API_KEY                   | grok-3-mini-beta             | grok-3-beta                |
 

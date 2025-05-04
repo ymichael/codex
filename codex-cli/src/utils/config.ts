@@ -44,6 +44,8 @@ if (!process.env["OPENAI_API_KEY"]) {
     DEFAULT_PROVIDER = "openrouter";
   } else if (process.env["XAI_API_KEY"]) {
     DEFAULT_PROVIDER = "xai";
+  } else if (process.env["DEEPSEEK_API_KEY"]) {
+    DEFAULT_PROVIDER = "deepseek";
   }
 }
 
@@ -70,6 +72,13 @@ function getAPIKeyForProviderOrExit(provider: string): string {
       reportMissingAPIKeyForProvider(provider);
       process.exit(1);
       break;
+    case "deepseek":
+        if (process.env["DEEPSEEK_API_KEY"]) {
+          return process.env["DEEPSEEK_API_KEY"];
+        }
+        reportMissingAPIKeyForProvider(provider);
+        process.exit(1);
+        break;
     case "ollama":
       // Ollama doesn't require an API key but the openai client requires one
       return "ollama";
@@ -98,6 +107,8 @@ function baseURLForProvider(provider: string): string {
       return "https://openrouter.ai/api/v1";
     case "xai":
       return "https://api.x.ai/v1";
+    case "deepseek":
+        return process.env["DEEPSEEK_API_BASE_URL"] ?? "https://api.deepseek.com";
     default:
       // TODO throw?
       return "";
@@ -129,6 +140,11 @@ function defaultModelsForProvider(provider: string): {
         agentic: "grok-3-mini-beta",
         fullContext: "grok-3-beta",
       };
+    case "deepseek":
+        return {
+          agentic: "deepseek-coder",
+          fullContext: "deepseek-reasoner",
+        };
     default:
       return {
         agentic: "",

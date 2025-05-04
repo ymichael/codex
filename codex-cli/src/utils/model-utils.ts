@@ -117,6 +117,10 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
             )} for Google Gemini models\n`;
           case "xai":
             return `- ${chalk.bold("XAI_API_KEY")} for xAI models\n`;
+          case "deepseek":
+              return `- ${chalk.bold(
+                "DEEPSEEK_API_KEY",
+              )} for Deepseek resoner models\n`;
           default:
             return (
               [
@@ -149,6 +153,10 @@ export function reportMissingAPIKeyForProvider(provider: string): void {
             return `You can create an xAI key here: ${chalk.bold(
               chalk.underline("https://console.x.ai/team/default/api-keys"),
             )}\n`;
+          case "deepseek":
+              return `You can create a Deepseek AI key here: ${chalk.bold(
+                chalk.underline("https://platform.deepseek.com/api_keys"),
+              )}\n`;
           default:
             return "";
         }
