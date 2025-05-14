@@ -44,6 +44,8 @@ if (!process.env["OPENAI_API_KEY"]) {
     DEFAULT_PROVIDER = "openrouter";
   } else if (process.env["XAI_API_KEY"]) {
     DEFAULT_PROVIDER = "xai";
+  } else if (process.env["MISTRAL_API_KEY"]) {
+    DEFAULT_PROVIDER = "mistral"
   }
 }
 
@@ -80,6 +82,13 @@ function getAPIKeyForProviderOrExit(provider: string): string {
       reportMissingAPIKeyForProvider(provider);
       process.exit(1);
       break;
+    case "mistral":
+      if (process.env["MISTRAL_API_KEY"]) {
+        return process.env["MISTRAL_API_KEY"];
+      }
+      reportMissingAPIKeyForProvider(provider);
+      process.exit(1);
+      break;
     default:
       reportMissingAPIKeyForProvider("");
       process.exit(1);
@@ -98,6 +107,8 @@ function baseURLForProvider(provider: string): string {
       return "https://openrouter.ai/api/v1";
     case "xai":
       return "https://api.x.ai/v1";
+    case "mistral":
+      return "https://api.mistral.ai/v1";
     default:
       // TODO throw?
       return "";
@@ -128,6 +139,11 @@ function defaultModelsForProvider(provider: string): {
       return {
         agentic: "grok-3-mini-beta",
         fullContext: "grok-3-beta",
+      };
+    case "mistral":
+      return {
+        agentic: "mistral-medium-latest",
+        fullContext: "codestral-latest",
       };
     default:
       return {
