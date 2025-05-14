@@ -306,6 +306,7 @@ This fork of Codex supports multiple AI providers:
 - openrouter
 - ollama
 - xai
+- mistral
 
 To use a different provider, set the `provider` key in your config file:
 
@@ -326,6 +327,7 @@ Here's a list of all the providers and their default models:
 | openrouter | OPENROUTER_API_KEY            | openai/o4-mini               | openai/o3                  |
 | ollama     | Not required                  | User must specify            | User must specify          |
 | xai        | XAI_API_KEY                   | grok-3-mini-beta             | grok-3-beta                |
+| mistral    | MISTRAL_API_KEY               | mistral-medium-lates         | codestral-latest           |
 
 #### When using an alternative provider, make sure you have the correct environment variables set.
 
