@@ -57,8 +57,8 @@ docker run --name "$CONTAINER_NAME" -d \
   codex \
   sleep infinity
 
-# Initialize the firewall inside the container.
-docker exec "$CONTAINER_NAME" bash -c "sudo /usr/local/bin/init_firewall.sh"
+# Initialize the firewall inside the container as root.
+docker exec --user root "$CONTAINER_NAME" bash -c "/usr/local/bin/init_firewall.sh"
 
 # Execute the provided command in the container, ensuring it runs in the work directory.
 # We use a parameterized bash command to safely handle the command and directory.
@@ -67,4 +67,4 @@ quoted_args=""
 for arg in "$@"; do
   quoted_args+=" $(printf '%q' "$arg")"
 done
-docker exec -it "$CONTAINER_NAME" bash -c "cd \"/app$WORK_DIR\" && codex --full-auto ${quoted_args}"
+docker exec -it "$CONTAINER_NAME" bash -c "cd \"/app$WORK_DIR\" && open-codex --full-auto ${quoted_args}"
