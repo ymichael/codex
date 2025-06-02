@@ -29,6 +29,7 @@ import {
   parseToolCallOutput,
   parseToolCallChatCompletion,
 } from "./utils/parsers";
+import { runServer } from "./server";
 import { onExit, setInkRenderer } from "./utils/terminal";
 import { spawnSync } from "child_process";
 import fs from "fs";
@@ -51,6 +52,7 @@ const cli = meow(
   Usage
     $ codex [options] <prompt>
     $ codex completion <bash|zsh|fish>
+    $ codex server [options]
 
   Options
     -h, --help                 Show usage and exit
@@ -69,6 +71,10 @@ const cli = meow(
     --project-doc <file>       Include an additional markdown file at <file> as context
     --full-stdout              Do not truncate stdout/stderr from command outputs
 
+  Server options
+    --port <port>              Port for HTTP server (default: 3000)
+    --host <host>              Host for HTTP server (default: localhost)
+
   Dangerous options
     --dangerously-auto-approve-everything
                                Skip all confirmation prompts and execute commands without
@@ -83,6 +89,7 @@ const cli = meow(
     $ codex "Write and run a python program that prints ASCII art"
     $ codex -q "fix build issues"
     $ codex completion bash
+    $ codex server --port 8080
 `,
   {
     importMeta: import.meta,
@@ -147,6 +154,16 @@ const cli = meow(
         description: `Run in full-context editing approach. The model is given the whole code
           directory as context and performs changes in one go without acting.`,
       },
+
+      // Server mode flags
+      port: {
+        type: "string",
+        description: "Port for HTTP server (default: 3000)",
+      },
+      host: {
+        type: "string",
+        description: "Host for HTTP server (default: localhost)",
+      },
     },
   },
 );
@@ -182,6 +199,7 @@ complete -c codex -a '(_fish_complete_path)' -d 'file path'`,
   console.log(script);
   process.exit(0);
 }
+
 // Show help if requested
 if (cli.flags.help) {
   cli.showHelp();
@@ -225,6 +243,26 @@ config = {
   model: model ?? config.model,
   provider: provider ?? config.provider,
 };
+
+// Handle 'server' subcommand after config is loaded
+if (cli.input[0] === "server") {
+  const port = parseInt(cli.flags.port || "3000", 10);
+  const host = cli.flags.host || "localhost";
+  
+  try {
+    await runServer({ port, host, config });
+    // Keep the process alive - don't exit
+    process.on('SIGINT', () => {
+      // eslint-disable-next-line no-console
+      console.log("\n👋 Server shutting down...");
+      process.exit(0);
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
+}
 
 // Check for updates after loading config
 // This is important because we write state file in the config dir
